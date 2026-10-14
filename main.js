@@ -1,38 +1,72 @@
 const canvas = document.getElementById("scene");
 const ctx = canvas.getContext("2d");
 
+// Seeded random number generator (the "mulberry32" recipe).
+// Give it a seed and it returns a function that works like Math.random(),
+// except the same seed always gives the same sequence of numbers.
+// The bit-shuffling inside is a published recipe, so it is used as it is.
 function mulberry32(seed) {
   return function () {
     seed |= 0;
     seed = (seed + 0x6d2b79f5) | 0;
-    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    let mixed = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    mixed = (mixed + Math.imul(mixed ^ (mixed >>> 7), 61 | mixed)) ^ mixed;
+    return ((mixed ^ (mixed >>> 14)) >>> 0) / 4294967296;
   };
 }
 
-function pick(rand, list) {
-  return list[Math.floor(rand() * list.length)];
+function pick(random, items) {
+  const randomIndex = Math.floor(random() * items.length);
+  return items[randomIndex];
 }
 
 function generateJourney(seed) {
-  const rand = mulberry32(seed);
-  const count = 2 + Math.floor(rand() * 3);
+  const random = mulberry32(seed);
+  const allBiomes = ["city", "forest", "fields"];
+
+  const biomeCount = 2 + Math.floor(random() * 3);
   const biomes = [];
-  const all = ["city", "forest", "fields"];
-  for (let i = 0; i < count; i++) {
-    const options = all.filter((b) => b !== biomes[i - 1]);
-    biomes.push(pick(rand, options));
+  for (let i = 0; i < biomeCount; i++) {
+    const previousBiome = biomes[i - 1];
+    const allowedBiomes = allBiomes.filter((biome) => biome !== previousBiome);
+    biomes.push(pick(random, allowedBiomes));
   }
-  const weather = pick(rand, ["clear", "rain", "snow"]);
-  const hour = 22 + Math.floor(rand() * 3);
-  const minute = Math.floor(rand() * 60);
+
+  const weather = pick(random, ["clear", "rain", "snow"]);
+  const hour = 22 + Math.floor(random() * 3);
+  const minute = Math.floor(random() * 60);
+
   const train = {
-    carriages: 4 + Math.floor(rand() * 5),
-    livery: Math.floor(rand() * 3),
+    carriages: 4 + Math.floor(random() * 5),
+    livery: Math.floor(random() * 3),
   };
-  const stations = biomes.map(() => rand() < 0.3);
+
+  const stationChance = 0.3;
+  const stations = biomes.map(() => random() < stationChance);
+
   return { seed, biomes, weather, hour, minute, train, stations };
+}
+
+function generateSkyline(random, skylineWidth) {
+  const buildings = [];
+  let nextBuildingLeft = 0;
+  let currentHeight = 80 + random() * 120;
+
+  while (nextBuildingLeft < skylineWidth) {
+    const buildingWidth = 30 + random() * 50;
+    const heightChange = (random() - 0.5) * 60;
+    currentHeight = currentHeight + heightChange;
+    currentHeight = Math.max(40, Math.min(240, currentHeight));
+
+    buildings.push({
+      left: nextBuildingLeft,
+      width: buildingWidth,
+      height: currentHeight,
+    });
+    nextBuildingLeft = nextBuildingLeft + buildingWidth;
+  }
+
+  return buildings;
 }
 
 function resize() {
@@ -84,16 +118,16 @@ function drawMoon() {
 const layers = [];
 
 function updateLayers(dt) {
-  const width = window.innerWidth;
+  const screenWidth = window.innerWidth;
   for (const layer of layers) {
-    layer.x -= layer.speed * dt;
-    layer.x = layer.x % width;
+    layer.scrollOffset -= layer.speed * dt;
+    layer.scrollOffset = layer.scrollOffset % screenWidth;
   }
 }
 
 function drawLayers() {
   for (const layer of layers) {
-    layer.draw(layer.x);
+    layer.draw(layer.scrollOffset);
   }
 }
 
@@ -104,22 +138,22 @@ function draw() {
 }
 
 layers.push({
-  x: 0,
+  scrollOffset: 0,
   speed: 40,
-  draw(x) {
+  draw(scrollOffset) {
     ctx.fillStyle = "#0c0e1c";
-    const width = window.innerWidth;
-    const drawX = Math.floor(x);
+    const screenWidth = window.innerWidth;
+    const drawX = Math.floor(scrollOffset);
     ctx.fillRect(
       drawX,
       window.innerHeight * 0.6,
-      width,
+      screenWidth,
       window.innerHeight * 0.4,
     );
     ctx.fillRect(
-      drawX + width,
+      drawX + screenWidth,
       window.innerHeight * 0.6,
-      width,
+      screenWidth,
       window.innerHeight * 0.4,
     );
   },
@@ -128,8 +162,3 @@ layers.push({
 resize();
 window.addEventListener("resize", resize);
 requestAnimationFrame(loop);
-
-const j1 = JSON.stringify(generateJourney(42));
-const j2 = JSON.stringify(generateJourney(42));
-console.log(j1);
-console.log(j1 === j2);
