@@ -1,10 +1,8 @@
 const canvas = document.getElementById("scene");
 const ctx = canvas.getContext("2d");
 
-// Seeded random number generator (the "mulberry32" recipe).
-// Give it a seed and it returns a function that works like Math.random(),
-// except the same seed always gives the same sequence of numbers.
-// The bit-shuffling inside is a published recipe, so we use it as it is.
+// Seeded random numbers (mulberry32): same seed, same sequence.
+// The bit mixing is a published recipe.
 function mulberry32(seed) {
   return function () {
     seed |= 0;
@@ -115,7 +113,11 @@ function drawMoon() {
   ctx.fill();
 }
 
-// Windows: sizes in pixels, and the chance that any one window is lit.
+// Whole pixels, so the ground edge doesn't blend into the sky.
+function getGroundY() {
+  return Math.floor(window.innerHeight * 0.6);
+}
+
 const windowSize = 6;
 const windowSpacing = 10;
 const rowSpacing = 14;
@@ -124,9 +126,8 @@ const roofMargin = 10;
 const litChance = 0.25;
 const dimChance = 0.4;
 
-// Rolls the dice for every window slot in one building, once, and saves
-// the lit ones on the building. Each saved window is measured from the
-// building's own left wall and roof, so it stays attached to the building.
+// Windows are rolled once per building and measured from its own corner,
+// so they move with it.
 function addWindows(random, building) {
   building.litWindows = [];
 
@@ -144,24 +145,32 @@ function addWindows(random, building) {
   }
 }
 
-// Created once when the page loads, then only drawn every frame.
+// Generated once at load. Drawing only reads this data.
 const skylineRandom = mulberry32(5);
 const skyline = generateSkyline(skylineRandom, window.innerWidth);
 for (const building of skyline) {
   addWindows(skylineRandom, building);
 }
 
-function drawBuilding(building) {
-  const groundY = window.innerHeight * 0.6;
-  const roofY = groundY - building.height;
+// Whole pixels: the scroll wrap and the second copy must use the same number.
+const lastBuilding = skyline[skyline.length - 1];
+const skylineWidth = Math.floor(lastBuilding.left + lastBuilding.width);
+
+function drawBuilding(building, shiftX) {
+  const groundY = getGroundY();
+  const roofY = groundY - Math.floor(building.height);
+
+  // Round both edges so neighbouring buildings meet without a gap.
+  const left = Math.floor(building.left + shiftX);
+  const right = Math.floor(building.left + building.width + shiftX);
 
   ctx.fillStyle = "#0c0e1c";
-  ctx.fillRect(building.left, roofY, building.width, building.height);
+  ctx.fillRect(left, roofY, right - left, groundY - roofY);
 
   for (const litWindow of building.litWindows) {
     ctx.fillStyle = litWindow.isDim ? "#c98f4a" : "#ffc76e";
     ctx.fillRect(
-      building.left + litWindow.fromLeft,
+      left + litWindow.fromLeft,
       roofY + litWindow.fromRoof,
       windowSize,
       windowSize,
@@ -169,19 +178,21 @@ function drawBuilding(building) {
   }
 }
 
-function drawSkyline() {
+// Drawn twice, one skylineWidth apart, so the wrap is seamless.
+function drawSkyline(scrollOffset) {
+  const drawX = Math.floor(scrollOffset);
   for (const building of skyline) {
-    drawBuilding(building);
+    drawBuilding(building, drawX);
+    drawBuilding(building, drawX + skylineWidth);
   }
 }
 
 const layers = [];
 
 function updateLayers(dt) {
-  const screenWidth = window.innerWidth;
   for (const layer of layers) {
     layer.scrollOffset -= layer.speed * dt;
-    layer.scrollOffset = layer.scrollOffset % screenWidth;
+    layer.scrollOffset = layer.scrollOffset % layer.wrapWidth;
   }
 }
 
@@ -195,27 +206,30 @@ function draw() {
   drawSky();
   drawMoon();
   drawLayers();
-  drawSkyline();
 }
 
 layers.push({
   scrollOffset: 0,
+  speed: 25,
+  wrapWidth: skylineWidth,
+  draw: drawSkyline,
+});
+
+layers.push({
+  scrollOffset: 0,
   speed: 40,
+  wrapWidth: window.innerWidth,
   draw(scrollOffset) {
     ctx.fillStyle = "#0c0e1c";
     const screenWidth = window.innerWidth;
+    const groundY = getGroundY();
     const drawX = Math.floor(scrollOffset);
-    ctx.fillRect(
-      drawX,
-      window.innerHeight * 0.6,
-      screenWidth,
-      window.innerHeight * 0.4,
-    );
+    ctx.fillRect(drawX, groundY, screenWidth, window.innerHeight - groundY);
     ctx.fillRect(
       drawX + screenWidth,
-      window.innerHeight * 0.6,
+      groundY,
       screenWidth,
-      window.innerHeight * 0.4,
+      window.innerHeight - groundY,
     );
   },
 });
