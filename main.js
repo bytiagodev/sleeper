@@ -122,6 +122,7 @@ const rowSpacing = 14;
 const wallMargin = 8;
 const roofMargin = 10;
 const litChance = 0.25;
+const dimChance = 0.4;
 
 // Rolls the dice for every window slot in one building, once, and saves
 // the lit ones on the building. Each saved window is measured from the
@@ -134,7 +135,8 @@ function addWindows(random, building) {
     let fromLeft = wallMargin;
     while (fromLeft + windowSize <= building.width - wallMargin) {
       if (random() < litChance) {
-        building.litWindows.push({ fromLeft, fromRoof });
+        const isDim = random() < dimChance;
+        building.litWindows.push({ fromLeft, fromRoof, isDim });
       }
       fromLeft = fromLeft + windowSpacing;
     }
@@ -156,8 +158,8 @@ function drawBuilding(building) {
   ctx.fillStyle = "#0c0e1c";
   ctx.fillRect(building.left, roofY, building.width, building.height);
 
-  ctx.fillStyle = "#ffc76e";
   for (const litWindow of building.litWindows) {
+    ctx.fillStyle = litWindow.isDim ? "#c98f4a" : "#ffc76e";
     ctx.fillRect(
       building.left + litWindow.fromLeft,
       roofY + litWindow.fromRoof,
