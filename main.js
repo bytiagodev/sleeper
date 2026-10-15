@@ -4,7 +4,7 @@ const ctx = canvas.getContext("2d");
 // Seeded random number generator (the "mulberry32" recipe).
 // Give it a seed and it returns a function that works like Math.random(),
 // except the same seed always gives the same sequence of numbers.
-// The bit-shuffling inside is a published recipe, so it is used as it is.
+// The bit-shuffling inside is a published recipe, so we use it as it is.
 function mulberry32(seed) {
   return function () {
     seed |= 0;
@@ -115,6 +115,64 @@ function drawMoon() {
   ctx.fill();
 }
 
+// Windows: sizes in pixels, and the chance that any one window is lit.
+const windowSize = 6;
+const windowSpacing = 10;
+const rowSpacing = 14;
+const wallMargin = 8;
+const roofMargin = 10;
+const litChance = 0.25;
+
+// Rolls the dice for every window slot in one building, once, and saves
+// the lit ones on the building. Each saved window is measured from the
+// building's own left wall and roof, so it stays attached to the building.
+function addWindows(random, building) {
+  building.litWindows = [];
+
+  let fromRoof = roofMargin;
+  while (fromRoof + windowSize <= building.height - wallMargin) {
+    let fromLeft = wallMargin;
+    while (fromLeft + windowSize <= building.width - wallMargin) {
+      if (random() < litChance) {
+        building.litWindows.push({ fromLeft, fromRoof });
+      }
+      fromLeft = fromLeft + windowSpacing;
+    }
+    fromRoof = fromRoof + rowSpacing;
+  }
+}
+
+// Created once when the page loads, then only drawn every frame.
+const skylineRandom = mulberry32(5);
+const skyline = generateSkyline(skylineRandom, window.innerWidth);
+for (const building of skyline) {
+  addWindows(skylineRandom, building);
+}
+
+function drawBuilding(building) {
+  const groundY = window.innerHeight * 0.6;
+  const roofY = groundY - building.height;
+
+  ctx.fillStyle = "#0c0e1c";
+  ctx.fillRect(building.left, roofY, building.width, building.height);
+
+  ctx.fillStyle = "#ffc76e";
+  for (const litWindow of building.litWindows) {
+    ctx.fillRect(
+      building.left + litWindow.fromLeft,
+      roofY + litWindow.fromRoof,
+      windowSize,
+      windowSize,
+    );
+  }
+}
+
+function drawSkyline() {
+  for (const building of skyline) {
+    drawBuilding(building);
+  }
+}
+
 const layers = [];
 
 function updateLayers(dt) {
@@ -135,6 +193,7 @@ function draw() {
   drawSky();
   drawMoon();
   drawLayers();
+  drawSkyline();
 }
 
 layers.push({
