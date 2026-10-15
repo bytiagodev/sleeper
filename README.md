@@ -48,3 +48,7 @@ python -m http.server
 ## Later, maybe
 
 Once the core scene ships: coast and mountain biomes, small lit stations the train stops at, fog, synthesised ambient sound, and shareable seeds in the URL.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
