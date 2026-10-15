@@ -145,11 +145,21 @@ function addWindows(random, building) {
   }
 }
 
+const antennaChance = 0.3;
+
+function addAntenna(random, building) {
+  building.antennaHeight = 0;
+  if (random() < antennaChance) {
+    building.antennaHeight = 8 + Math.floor(random() * 15);
+  }
+}
+
 // Generated once at load. Drawing only reads this data.
 const skylineRandom = mulberry32(5);
 const skyline = generateSkyline(skylineRandom, window.innerWidth);
 for (const building of skyline) {
   addWindows(skylineRandom, building);
+  addAntenna(skylineRandom, building);
 }
 
 // Whole pixels: the scroll wrap and the second copy must use the same number.
@@ -166,6 +176,15 @@ function drawBuilding(building, shiftX) {
 
   ctx.fillStyle = "#0c0e1c";
   ctx.fillRect(left, roofY, right - left, groundY - roofY);
+
+  const antennaWidth = 2;
+  const antennaLeft = left + Math.floor((right - left) / 2);
+  ctx.fillRect(
+    antennaLeft,
+    roofY - building.antennaHeight,
+    antennaWidth,
+    building.antennaHeight,
+  );
 
   for (const litWindow of building.litWindows) {
     ctx.fillStyle = litWindow.isDim ? "#c98f4a" : "#ffc76e";
