@@ -221,6 +221,54 @@ function drawLayers() {
   }
 }
 
+function drawTree(tree, shiftX) {
+  const groundY = getGroundY();
+  const centerX = tree.centerX + shiftX;
+  const treeTop = groundY - tree.height;
+  const tierCount = 3;
+  const tierHeight = tree.height / 2;
+  const tierStep = (tree.height - tierHeight) / (tierCount - 1);
+
+  ctx.fillStyle = "#2e6b4f";
+  for (let tier = 0; tier < tierCount; tier++) {
+    const tierTop = treeTop + tier * tierStep;
+    const tierBottom = tierTop + tierHeight;
+    const widthFraction = 0.5 + 0.5 * (tier / (tierCount - 1));
+    const tierHalfWidth = (tree.width / 2) * widthFraction;
+
+    ctx.beginPath();
+    ctx.moveTo(centerX, tierTop);
+    ctx.lineTo(centerX - tierHalfWidth, tierBottom);
+    ctx.lineTo(centerX + tierHalfWidth, tierBottom);
+    ctx.closePath();
+    ctx.fill();
+  }
+}
+
+function generateForest(random, forestWidth, density) {
+  const trees = [];
+  let nextCenterX = 0;
+  while (nextCenterX < forestWidth) {
+    const height = 70 + random() * 110;
+    const width = height * (0.4 + random() * 0.2);
+    trees.push({ centerX: nextCenterX, width, height });
+    nextCenterX = nextCenterX + (30 + random() * 40) / density;
+  }
+  return { trees, loopWidth: Math.floor(nextCenterX) };
+}
+
+const forestRandom = mulberry32(11);
+const forest = generateForest(forestRandom, window.innerWidth, 1);
+
+function drawForest(scrollOffset) {
+  const drawX = Math.floor(scrollOffset);
+  for (const copy of [-1, 0, 1, 2]) {
+    for (const tree of forest.trees) {
+      drawTree(tree, drawX + copy * forest.loopWidth);
+    }
+  }
+}
+
 function draw() {
   drawSky();
   drawMoon();
@@ -251,6 +299,13 @@ layers.push({
       window.innerHeight - groundY,
     );
   },
+});
+
+layers.push({
+  scrollOffset: 0,
+  speed: 60,
+  wrapWidth: forest.loopWidth,
+  draw: drawForest,
 });
 
 resize();
