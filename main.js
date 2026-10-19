@@ -221,7 +221,7 @@ function drawLayers() {
   }
 }
 
-function drawTree(tree, shiftX) {
+function drawTree(tree, shiftX, color) {
   const groundY = getGroundY();
   const centerX = tree.centerX + shiftX;
   const treeTop = groundY - tree.height;
@@ -229,7 +229,7 @@ function drawTree(tree, shiftX) {
   const tierHeight = tree.height / 2;
   const tierStep = (tree.height - tierHeight) / (tierCount - 1);
 
-  ctx.fillStyle = "#2e6b4f";
+  ctx.fillStyle = color;
   for (let tier = 0; tier < tierCount; tier++) {
     const tierTop = treeTop + tier * tierStep;
     const tierBottom = tierTop + tierHeight;
@@ -245,8 +245,9 @@ function drawTree(tree, shiftX) {
   }
 }
 
-function generateForest(random, forestWidth, density) {
+function generateForest(random, forestWidth, density, sizeScale) {
   const trees = [];
+  const height = (70 + random() * 110) * sizeScale;
   let nextCenterX = 0;
   while (nextCenterX < forestWidth) {
     const height = 70 + random() * 110;
@@ -257,16 +258,27 @@ function generateForest(random, forestWidth, density) {
   return { trees, loopWidth: Math.floor(nextCenterX) };
 }
 
-const forestRandom = mulberry32(11);
-const forest = generateForest(forestRandom, window.innerWidth, 1);
+function createForestLayer(seed, density, sizeScale, color, speed) {
+  const forest = generateForest(
+    mulberry32(seed),
+    window.innerWidth,
+    density,
+    sizeScale,
+  );
 
-function drawForest(scrollOffset) {
-  const drawX = Math.floor(scrollOffset);
-  for (const copy of [-1, 0, 1, 2]) {
-    for (const tree of forest.trees) {
-      drawTree(tree, drawX + copy * forest.loopWidth);
-    }
-  }
+  return {
+    scrollOffset: 0,
+    speed,
+    wrapWidth: forest.loopWidth,
+    draw(scrollOffset) {
+      const drawX = Math.floor(scrollOffset);
+      for (const copy of [-1, 0, 1, 2]) {
+        for (const tree of forest.trees) {
+          drawTree(tree, drawX + copy * forest.loopWidth, color);
+        }
+      }
+    },
+  };
 }
 
 function draw() {
@@ -301,12 +313,9 @@ layers.push({
   },
 });
 
-layers.push({
-  scrollOffset: 0,
-  speed: 60,
-  wrapWidth: forest.loopWidth,
-  draw: drawForest,
-});
+layers.push(createForestLayer(31, 2.5, 0.45, "#0c0e1c", 22));
+layers.push(createForestLayer(21, 2, 0.7, "#080a14", 40));
+layers.push(createForestLayer(11, 1.6, 1, "#05060d", 70));
 
 resize();
 window.addEventListener("resize", resize);
