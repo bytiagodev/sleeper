@@ -118,6 +118,12 @@ function getGroundY() {
   return Math.floor(window.innerHeight * 0.6);
 }
 
+function drawGround() {
+  const groundY = getGroundY();
+  ctx.fillStyle = "#0c0e1c";
+  ctx.fillRect(0, groundY, window.innerWidth, window.innerHeight - groundY);
+}
+
 const windowSize = 6;
 const windowSpacing = 10;
 const rowSpacing = 14;
@@ -154,18 +160,6 @@ function addAntenna(random, building) {
   }
 }
 
-// Generated once at load. Drawing only reads this data.
-const skylineRandom = mulberry32(5);
-const skyline = generateSkyline(skylineRandom, window.innerWidth);
-for (const building of skyline) {
-  addWindows(skylineRandom, building);
-  addAntenna(skylineRandom, building);
-}
-
-// Whole pixels: the scroll wrap and the second copy must use the same number.
-const lastBuilding = skyline[skyline.length - 1];
-const skylineWidth = Math.floor(lastBuilding.left + lastBuilding.width);
-
 function drawBuilding(building, shiftX) {
   const groundY = getGroundY();
   const roofY = groundY - Math.floor(building.height);
@@ -197,28 +191,32 @@ function drawBuilding(building, shiftX) {
   }
 }
 
-// Drawn twice, one skylineWidth apart, so the wrap is seamless.
-function drawSkyline(scrollOffset) {
-  const drawX = Math.floor(scrollOffset);
-  for (const building of skyline) {
-    drawBuilding(building, drawX);
-    drawBuilding(building, drawX + skylineWidth);
+function createSkylineLayer(seed, speed) {
+  const random = mulberry32(seed);
+  const buildings = generateSkyline(random, window.innerWidth);
+  for (const building of buildings) {
+    addWindows(random, building);
   }
-}
-
-const layers = [];
-
-function updateLayers(dt) {
-  for (const layer of layers) {
-    layer.scrollOffset -= layer.speed * dt;
-    layer.scrollOffset = layer.scrollOffset % layer.wrapWidth;
+  for (const building of buildings) {
+    addAntenna(random, building);
   }
-}
 
-function drawLayers() {
-  for (const layer of layers) {
-    layer.draw(layer.scrollOffset);
-  }
+  // Whole pixels: the scroll wrap and the second copy must use the same number.
+  const lastBuilding = buildings[buildings.length - 1];
+  const loopWidth = Math.floor(lastBuilding.left + lastBuilding.width);
+
+  return {
+    scrollOffset: 0,
+    speed,
+    wrapWidth: loopWidth,
+    draw(scrollOffset) {
+      const drawX = Math.floor(scrollOffset);
+      for (const building of buildings) {
+        drawBuilding(building, drawX);
+        drawBuilding(building, drawX + loopWidth);
+      }
+    },
+  };
 }
 
 function drawTree(tree, shiftX, color) {
@@ -247,10 +245,9 @@ function drawTree(tree, shiftX, color) {
 
 function generateForest(random, forestWidth, density, sizeScale) {
   const trees = [];
-  const height = (70 + random() * 110) * sizeScale;
   let nextCenterX = 0;
   while (nextCenterX < forestWidth) {
-    const height = 70 + random() * 110;
+    const height = (70 + random() * 110) * sizeScale;
     const width = height * (0.4 + random() * 0.2);
     trees.push({ centerX: nextCenterX, width, height });
     nextCenterX = nextCenterX + (30 + random() * 40) / density;
@@ -272,6 +269,7 @@ function createForestLayer(seed, density, sizeScale, color, speed) {
     wrapWidth: forest.loopWidth,
     draw(scrollOffset) {
       const drawX = Math.floor(scrollOffset);
+      // Trees stick out past their centre, so draw an extra copy each side.
       for (const copy of [-1, 0, 1, 2]) {
         for (const tree of forest.trees) {
           drawTree(tree, drawX + copy * forest.loopWidth, color);
@@ -281,41 +279,255 @@ function createForestLayer(seed, density, sizeScale, color, speed) {
   };
 }
 
+function drawBarn(leftX, baseY) {
+  const wallHeight = 34;
+
+  ctx.fillStyle = "#0f1322";
+  ctx.fillRect(leftX, baseY - wallHeight, 84, wallHeight);
+
+  ctx.fillStyle = "#05060d";
+  ctx.fillRect(leftX + 31, baseY - 24, 22, 24);
+
+  ctx.fillStyle = "#c98f4a";
+  ctx.globalAlpha = 0.6;
+  ctx.fillRect(leftX + 9, baseY - 26, 8, 8);
+  ctx.fillRect(leftX + 67, baseY - 26, 8, 8);
+  ctx.globalAlpha = 1;
+
+  ctx.fillStyle = "#080a14";
+  ctx.beginPath();
+  ctx.moveTo(leftX - 4, baseY - wallHeight);
+  ctx.lineTo(leftX + 12, baseY - 52);
+  ctx.lineTo(leftX + 42, baseY - 62);
+  ctx.lineTo(leftX + 72, baseY - 52);
+  ctx.lineTo(leftX + 88, baseY - wallHeight);
+  ctx.closePath();
+  ctx.fill();
+
+  const siloLeft = leftX + 90;
+  const siloWidth = 26;
+  const siloHeight = 58;
+  ctx.fillStyle = "#0f1322";
+  ctx.fillRect(siloLeft, baseY - siloHeight, siloWidth, siloHeight);
+
+  ctx.fillStyle = "#080a14";
+  ctx.beginPath();
+  ctx.moveTo(siloLeft - 2, baseY - siloHeight);
+  ctx.lineTo(siloLeft + siloWidth / 2, baseY - siloHeight - 10);
+  ctx.lineTo(siloLeft + siloWidth + 2, baseY - siloHeight);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillRect(siloLeft, baseY - 40, siloWidth, 2);
+  ctx.fillRect(siloLeft, baseY - 20, siloWidth, 2);
+}
+
+function createHorizonLayer(seed, speed) {
+  const random = mulberry32(seed);
+  const phaseA = random() * Math.PI * 2;
+  const phaseB = random() * Math.PI * 2;
+  const width = window.innerWidth;
+  const hasBarn = random() < 0.4;
+  const barnX = 100 + random() * (width - 200);
+  const trees = [];
+  for (let index = 0; index < 5; index++) {
+    const height = 22 + random() * 16;
+    const blobs = [];
+    const blobCount = 3 + Math.floor(random() * 3);
+    for (let blob = 0; blob < blobCount; blob++) {
+      blobs.push({
+        offsetX: (random() - 0.5) * height * 0.6,
+        offsetY: -height * (0.5 + random() * 0.4),
+        radius: height * (0.16 + random() * 0.12),
+      });
+    }
+    trees.push({ x: 30 + random() * (width - 60), height, blobs });
+  }
+
+  // Whole wave cycles across the width, so the end matches the start
+  // and the wrap has no jump.
+  function riseAt(x) {
+    const angle = (x / width) * Math.PI * 2;
+    return Math.sin(angle * 2 + phaseA) * 8 + Math.sin(angle * 5 + phaseB) * 3;
+  }
+
+  return {
+    scrollOffset: 0,
+    speed,
+    wrapWidth: width,
+    draw(scrollOffset) {
+      const groundY = getGroundY();
+      const drawX = Math.floor(scrollOffset);
+
+      const groundFill = ctx.createLinearGradient(
+        0,
+        groundY - 12,
+        0,
+        window.innerHeight,
+      );
+      groundFill.addColorStop(0, "#1a2133");
+      groundFill.addColorStop(1, "#0c0e1c");
+      ctx.fillStyle = groundFill;
+      ctx.beginPath();
+      ctx.moveTo(drawX, window.innerHeight);
+      for (let x = 0; x <= width * 2; x += 10) {
+        ctx.lineTo(drawX + x, groundY - riseAt(x));
+      }
+      ctx.lineTo(drawX + width * 2, window.innerHeight);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = "#0e1222";
+      trees.forEach((tree) => {
+        [0, width].forEach((copyShift) => {
+          const treeX = drawX + copyShift + tree.x;
+          const baseY = groundY - riseAt(tree.x) + 2;
+          ctx.fillRect(
+            treeX - 1,
+            baseY - tree.height * 0.5,
+            2,
+            tree.height * 0.5,
+          );
+          tree.blobs.forEach((blob) => {
+            ctx.beginPath();
+            ctx.arc(
+              treeX + blob.offsetX,
+              baseY + blob.offsetY,
+              blob.radius,
+              0,
+              Math.PI * 2,
+            );
+            ctx.fill();
+          });
+        });
+      });
+
+      if (hasBarn) {
+        const barnBaseY = groundY - riseAt(barnX) + 2;
+        drawBarn(drawX + barnX, barnBaseY);
+        drawBarn(drawX + width + barnX, barnBaseY);
+      }
+    },
+  };
+}
+
+const fenceSpacing = 60;
+const fenceHeight = 54;
+const fenceColor = "#10141f";
+
+function createFenceLayer(seed, speed) {
+  const random = mulberry32(seed);
+  // Whole posts only, so the loop lands post on post.
+  const postCount = Math.ceil(window.innerWidth / fenceSpacing);
+  const loopWidth = postCount * fenceSpacing;
+  const posts = [];
+  for (let i = 0; i < postCount; i++) {
+    posts.push({
+      height: fenceHeight - random() * 8,
+      lean: (random() - 0.5) * 6,
+    });
+  }
+
+  return {
+    scrollOffset: 0,
+    speed,
+    wrapWidth: loopWidth,
+    draw(scrollOffset) {
+      const baseY = getGroundY() + 14;
+      const drawX = Math.floor(scrollOffset);
+
+      ctx.fillStyle = fenceColor;
+      ctx.fillRect(drawX, baseY - fenceHeight + 10, loopWidth * 2, 2);
+      ctx.fillRect(drawX, baseY - fenceHeight + 30, loopWidth * 2, 2);
+
+      for (let copy = 0; copy < 2; copy++) {
+        posts.forEach((post, index) => {
+          const postX = drawX + copy * loopWidth + index * fenceSpacing;
+          const postTop = baseY - post.height;
+
+          ctx.beginPath();
+          ctx.moveTo(postX - 2, baseY);
+          ctx.lineTo(postX + 3, baseY);
+          ctx.lineTo(postX + 3 + post.lean, postTop);
+          ctx.lineTo(postX - 2 + post.lean, postTop);
+          ctx.closePath();
+          ctx.fill();
+        });
+      }
+    },
+  };
+}
+
+function createFurrowLayer(speed) {
+  const furrowSpacing = 80;
+  const horizonScale = 0.25;
+
+  return {
+    scrollOffset: 0,
+    speed,
+    wrapWidth: furrowSpacing,
+    draw(scrollOffset) {
+      const centerX = window.innerWidth / 2;
+      const topY = getGroundY() - 12;
+      const reach = centerX / horizonScale;
+
+      const fadeIn = ctx.createLinearGradient(0, topY, 0, topY + 60);
+      fadeIn.addColorStop(0, "rgba(110, 120, 150, 0)");
+      fadeIn.addColorStop(1, "rgba(110, 120, 150, 0.14)");
+      ctx.strokeStyle = fadeIn;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (
+        let bottomX = centerX - reach + Math.floor(scrollOffset);
+        bottomX <= centerX + reach;
+        bottomX += furrowSpacing
+      ) {
+        const topX = centerX + (bottomX - centerX) * horizonScale;
+        ctx.moveTo(topX, topY);
+        ctx.lineTo(bottomX, window.innerHeight);
+      }
+      ctx.stroke();
+    },
+  };
+}
+
+// Each biome is a list of layers, built once. Drawing only reads them.
+const biomeBuilders = {
+  city: () => [createSkylineLayer(5, 25)],
+  forest: () => [
+    createForestLayer(31, 2.5, 0.45, "#0c0e1c", 22),
+    createForestLayer(21, 2, 0.7, "#080a14", 40),
+    createForestLayer(11, 1.6, 1, "#05060d", 70),
+  ],
+  fields: () => [
+    createHorizonLayer(2, 20),
+    createFurrowLayer(300),
+    createFenceLayer(51, 90),
+  ],
+};
+
+const activeBiome = "fields";
+const layers = biomeBuilders[activeBiome]();
+
+function updateLayers(dt) {
+  for (const layer of layers) {
+    layer.scrollOffset -= layer.speed * dt;
+    layer.scrollOffset = layer.scrollOffset % layer.wrapWidth;
+  }
+}
+
+function drawLayers() {
+  for (const layer of layers) {
+    layer.draw(layer.scrollOffset);
+  }
+}
+
 function draw() {
   drawSky();
   drawMoon();
+  if (activeBiome !== "fields") drawGround();
   drawLayers();
 }
-
-layers.push({
-  scrollOffset: 0,
-  speed: 25,
-  wrapWidth: skylineWidth,
-  draw: drawSkyline,
-});
-
-layers.push({
-  scrollOffset: 0,
-  speed: 40,
-  wrapWidth: window.innerWidth,
-  draw(scrollOffset) {
-    ctx.fillStyle = "#0c0e1c";
-    const screenWidth = window.innerWidth;
-    const groundY = getGroundY();
-    const drawX = Math.floor(scrollOffset);
-    ctx.fillRect(drawX, groundY, screenWidth, window.innerHeight - groundY);
-    ctx.fillRect(
-      drawX + screenWidth,
-      groundY,
-      screenWidth,
-      window.innerHeight - groundY,
-    );
-  },
-});
-
-layers.push(createForestLayer(31, 2.5, 0.45, "#0c0e1c", 22));
-layers.push(createForestLayer(21, 2, 0.7, "#080a14", 40));
-layers.push(createForestLayer(11, 1.6, 1, "#05060d", 70));
 
 resize();
 window.addEventListener("resize", resize);
