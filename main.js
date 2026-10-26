@@ -20,7 +20,7 @@ function pick(random, items) {
 
 function generateJourney(seed) {
   const random = mulberry32(seed);
-  const allBiomes = ["city", "forest", "fields"];
+  const allBiomes = ["city", "forest", "fields", "coast", "mountains"];
 
   const biomeCount = 2 + Math.floor(random() * 3);
   const biomes = [];
