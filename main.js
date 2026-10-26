@@ -118,9 +118,14 @@ function getGroundY() {
   return Math.floor(window.innerHeight * 0.6);
 }
 
+const groundColors = {
+  city: "#0c0e1c",
+  forest: "#0c0e1c",
+  mountains: "#07080f",
+};
 function drawGround() {
   const groundY = getGroundY();
-  ctx.fillStyle = "#0c0e1c";
+  ctx.fillStyle = groundColors[activeBiome];
   ctx.fillRect(0, groundY, window.innerWidth, window.innerHeight - groundY);
 }
 
@@ -491,6 +496,117 @@ function createFurrowLayer(speed) {
   };
 }
 
+const ridgeStep = 8;
+
+// Each octave is a ring of random values. Smoothing between them gives bumps,
+// and doubling the cell count per octave adds finer detail on top.
+function generateRidgeHeights(random, pointCount, ridged) {
+  const octaves = [3, 6, 12, 24].map((cells, octaveIndex) => {
+    const values = [];
+    for (let cell = 0; cell < cells; cell++) values.push(random() * 2 - 1);
+    return { cells, values, weight: 0.5 ** octaveIndex };
+  });
+
+  const heights = [];
+  for (let point = 0; point < pointCount; point++) {
+    const position = point / pointCount;
+    let sum = 0;
+    octaves.forEach(({ cells, values, weight }) => {
+      const cellPosition = position * cells;
+      const cell = Math.floor(cellPosition);
+      const blend = cellPosition - cell;
+      const smooth = blend * blend * (3 - 2 * blend);
+      const noise =
+        values[cell % cells] * (1 - smooth) +
+        values[(cell + 1) % cells] * smooth;
+      // Folding the noise at zero turns round tops into sharp peaks.
+      sum += (ridged ? 1 - Math.abs(noise) : (noise + 1) / 2) * weight;
+    });
+    heights.push(sum);
+  }
+
+  const lowest = Math.min(...heights);
+  const highest = Math.max(...heights);
+  return heights.map((height) => (height - lowest) / (highest - lowest));
+}
+
+function createMountainLayer({
+  seed,
+  speed,
+  color,
+  maxHeight,
+  ridged,
+  lightCount = 0,
+  rimAlpha = 0,
+}) {
+  const random = mulberry32(seed);
+  const pointCount = Math.ceil(window.innerWidth / ridgeStep);
+  const loopWidth = pointCount * ridgeStep;
+  const heights = generateRidgeHeights(random, pointCount, ridged).map(
+    (height) => maxHeight * (0.1 + 0.9 * height),
+  );
+
+  const lights = [];
+  for (let index = 0; index < lightCount; index++) {
+    lights.push({
+      x: random() * loopWidth,
+      rise: maxHeight * (0.04 + random() * 0.1),
+      brightness: 0.35 + random() * 0.45,
+    });
+  }
+
+  return {
+    scrollOffset: 0,
+    speed,
+    wrapWidth: loopWidth,
+    draw(scrollOffset) {
+      const baseY = getGroundY();
+      const drawX = Math.floor(scrollOffset);
+      const lastIndex = pointCount * 2;
+      const pointX = (index) => drawX + index * ridgeStep;
+      const pointY = (index) => baseY - heights[index % pointCount];
+
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.moveTo(drawX, baseY);
+      for (let index = 0; index <= lastIndex; index++) {
+        ctx.lineTo(pointX(index), pointY(index));
+      }
+      ctx.lineTo(pointX(lastIndex), baseY);
+      ctx.closePath();
+      ctx.fill();
+
+      // Slopes that face the moon catch a thin edge of light.
+      if (rimAlpha > 0) {
+        ctx.strokeStyle = `rgba(130, 150, 230, ${rimAlpha})`;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        for (let index = 0; index < lastIndex; index++) {
+          if (pointY(index + 1) > pointY(index)) {
+            ctx.moveTo(pointX(index), pointY(index));
+            ctx.lineTo(pointX(index + 1), pointY(index + 1));
+          }
+        }
+        ctx.stroke();
+      }
+
+      ctx.fillStyle = "#c98f4a";
+      lights.forEach((light) => {
+        ctx.globalAlpha = light.brightness;
+        [0, loopWidth].forEach((shift) => {
+          ctx.fillRect(
+            Math.floor(drawX + shift + light.x),
+            baseY - light.rise,
+            2,
+            2,
+          );
+        });
+      });
+      ctx.globalAlpha = 1;
+    },
+  };
+}
+
 // Each biome is a list of layers, built once. Drawing only reads them.
 const biomeBuilders = {
   city: () => [createSkylineLayer(5, 25)],
@@ -503,6 +619,32 @@ const biomeBuilders = {
     createHorizonLayer(2, 20),
     createFurrowLayer(300),
     createFenceLayer(51, 90),
+  ],
+  mountains: () => [
+    createMountainLayer({
+      seed: 61,
+      speed: 10,
+      color: "#161a3a",
+      maxHeight: 210,
+      ridged: true,
+      rimAlpha: 0.22,
+    }),
+    createMountainLayer({
+      seed: 62,
+      speed: 22,
+      color: "#10142e",
+      maxHeight: 140,
+      ridged: true,
+      rimAlpha: 0.14,
+    }),
+    createMountainLayer({
+      seed: 63,
+      speed: 40,
+      color: "#0b0f24",
+      maxHeight: 60,
+      ridged: false,
+      lightCount: 14,
+    }),
   ],
 };
 
