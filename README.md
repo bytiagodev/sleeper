@@ -1,54 +1,55 @@
 # Sleeper
 
-*A window seat to nowhere.*
+A night train you watch from outside.
 
-> **Work in progress.** Sleeper is being built in the open, one phase at a time. What's in this repo today is the foundation, not the finished scene. Expect missing pieces, placeholder layers, and things that change from one commit to the next.
+A train crosses the frame while a generated world scrolls past behind it: city lights, pine forest, open fields, a moonlit coast, mountains. Everything on screen is drawn by code. There are no image files in this repository, no frameworks and no build step. The world is silhouettes, gradients and glow, which is what night looks like.
 
-A night train you watch from outside. A generative, ambient scene: a train crosses the frame while a procedurally generated world scrolls past behind it at parallax speeds. Every journey is different. The biomes, the weather and the train itself are all picked from a seed, and tunnels carry the train from one biome into the next.
+> Work in progress. The landscapes and the seeded journey generator are done. The train, weather and tunnels are next. See the roadmap below.
 
-Everything on screen is drawn by code. There are no image assets in this repo, and there won't be.
+## Run it
 
-## Where it stands
+Open `index.html` in a browser. Nothing to install.
 
-The build is split into phases, each one landing as its own commit.
+To switch landscape while developing, change `activeBiome` near the bottom of `main.js` to one of `"city"`, `"forest"`, `"fields"`, `"coast"` or `"mountains"`.
 
-| Phase | What it covers | Status |
-| --- | --- | --- |
-| 1 | Full-viewport canvas, delta-time animation loop | Done |
-| 2 | Sky, moon, parallax layer system with seamless wrapping | Done |
-| 3 | Seeded randomness and the journey config generator | Done |
-| 4 | Biome generators: city, forest, fields | **In progress** (city done, forest underway) |
-| 5 | The train | Next |
-| 6 | Weather: rain and snow | Planned |
-| 7 | Tunnels and the full journey flow | Planned |
-| 8 | UI, reduced-motion fallback, deploy | Planned |
+## What is in it
 
-If you open it right now you'll get a dusk sky, a moon, and a procedurally generated city skyline with lit windows scrolling past. There is no train yet. I'm aware the train is the whole point.
+**Five landscapes**, each built from layers that scroll at different speeds, so the near ones rush past and the far ones barely move:
 
-**Live demo:** not yet. It goes up with phase 8.
+- **City:** skylines grown by a random walk, with lit and dim windows and the odd antenna.
+- **Forest:** three rows of trees, pale and slow at the back, dark and fast at the front.
+- **Fields:** a wavy horizon, a ground plane with furrows that converge toward the distance, a farm with barn and silo, lone trees and a fence.
+- **Coast:** a sea that mirrors the sky at the horizon, a broken moon reflection that shimmers, drifting waves, and a headland with a lighthouse and a sweeping beam.
+- **Mountains:** layered ranges with sharp peaks, a rim of moonlight on the slopes, rolling foothills and a few distant lights.
 
-## Running it locally
+**Seeded journeys.** A journey is a number. The same number always produces the same biome sequence, weather, time and train, which is what will make journeys shareable by link.
 
-No build step, no dependencies. Clone the repo and open `index.html` in a browser, or serve the folder with any static server:
+## How it works
 
-```bash
-npx serve .
-# or
-python -m http.server
-```
+- **One canvas, one file of scene code.** `main.js` draws everything: sky, moon, ground and the active landscape.
+- **Delta-time loop.** Movement is multiplied by the time since the last frame, so the scene runs at the same speed on a 60 Hz and a 144 Hz screen.
+- **Layer system.** A layer is an object with a scroll speed, a wrap width and a `draw` function. Each landscape is a function that returns a list of layers.
+- **Seamless wrapping.** Every layer repeats exactly at its wrap width: whole sine cycles, whole fence posts, noise that wraps around. Positions are rounded to whole pixels so no seam shows.
+- **Generate once, draw every frame.** All random choices are made when a landscape is created and stored. Drawing never rolls dice, so nothing flickers and a seed can always be reproduced. Only the clock is used while drawing, for shimmer and the lighthouse beam.
+- **Seeded random numbers.** A small generator (mulberry32) replaces `Math.random`, because `Math.random` cannot be restarted from a known point.
 
-## How it's built
+## Roadmap
 
-- One HTML5 `<canvas>`, vanilla JavaScript, CSS for the page chrome only. No frameworks.
-- A `requestAnimationFrame` loop driven by delta time, so the scene moves at the same speed on any refresh rate.
-- A seeded PRNG (mulberry32): the seed *is* the journey, so the same seed always rebuilds the same ride.
-- A parallax layer system where each layer has its own scroll speed and wraps seamlessly.
-- Biomes generated once per journey and stored as geometry, then drawn from that data every frame. The city skyline is a random walk of building heights, with windows and rooftop details rolled per building.
+- [x] Canvas, resize handling and delta-time loop
+- [x] Sky, moon and parallax layers
+- [x] Seeded randomness and journey generator
+- [x] Five landscapes
+- [ ] The train
+- [ ] Weather: rain and snow
+- [ ] Tunnels between landscapes and the journey timeline
+- [ ] The "new journey" button, reduced-motion fallback and deployment
 
-## Later, maybe
+Later, if it gets that far: stations, fog, synthesised rain and rail sound, and journeys shared by link.
 
-Once the core scene ships: coast and mountain biomes, small lit stations the train stops at, fog, synthesised ambient sound, and shareable seeds in the URL.
+## Palette
+
+Dusk sky `#2b2d55` to `#151a38`, far silhouettes `#0c0e1c`, near silhouettes `#05060d`, lit windows `#ffc76e`, moon `#f2ead8`. Far layers sit close to the sky tone and nearer ones get darker, so depth reads as atmosphere.
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+MIT. See `LICENSE`.
