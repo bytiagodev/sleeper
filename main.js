@@ -100,16 +100,19 @@ function drawSky() {
   ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
 }
 
+function getMoon() {
+  return {
+    x: window.innerWidth * 0.8,
+    y: window.innerHeight * 0.2,
+    radius: 40,
+  };
+}
+
 function drawMoon() {
+  const moon = getMoon();
   ctx.fillStyle = "#f2ead8";
   ctx.beginPath();
-  ctx.arc(
-    window.innerWidth * 0.8,
-    window.innerHeight * 0.2,
-    40,
-    0,
-    Math.PI * 2,
-  );
+  ctx.arc(moon.x, moon.y, moon.radius, 0, Math.PI * 2);
   ctx.fill();
 }
 
@@ -122,6 +125,7 @@ const groundColors = {
   city: "#0c0e1c",
   forest: "#0c0e1c",
   mountains: "#07080f",
+  coast: "#07080f",
 };
 function drawGround() {
   const groundY = getGroundY();
@@ -607,6 +611,201 @@ function createMountainLayer({
   };
 }
 
+function getSeaY() {
+  return getGroundY() - Math.floor(window.innerHeight * 0.18);
+}
+
+function createSeaLayer(seed) {
+  const random = mulberry32(seed);
+  const stripCount = 45;
+  const strips = [];
+  for (let index = 0; index < stripCount; index++) {
+    const progress = random();
+    strips.push({
+      progress,
+      width: (8 + progress * 60) * (0.4 + random() * 1.2),
+      offset: (random() - 0.5) * (10 + progress * 50),
+      thickness: progress < 0.5 ? 1 : 2,
+      brightness: 0.06 + random() * 0.24,
+      phase: random() * Math.PI * 2,
+    });
+  }
+
+  return {
+    scrollOffset: 0,
+    speed: 0,
+    wrapWidth: 1,
+    draw() {
+      const seaY = getSeaY();
+      const groundY = getGroundY();
+      const seaHeight = groundY - seaY;
+
+      const water = ctx.createLinearGradient(0, seaY, 0, groundY);
+      water.addColorStop(0, "#262c58");
+      water.addColorStop(1, "#0d1429");
+      ctx.fillStyle = water;
+      ctx.fillRect(0, seaY, window.innerWidth, seaHeight);
+
+      ctx.fillStyle = "rgba(150, 160, 200, 0.15)";
+      ctx.fillRect(0, seaY, window.innerWidth, 1);
+
+      const moon = getMoon();
+      const seconds = performance.now() / 1000;
+      ctx.fillStyle = "#f2ead8";
+      strips.forEach((strip) => {
+        const shimmer = Math.sin(seconds * 0.8 + strip.phase) * 4;
+        ctx.globalAlpha = strip.brightness;
+        ctx.fillRect(
+          Math.floor(
+            moon.x + strip.offset + shimmer - strip.width / strip.thickness,
+          ),
+          Math.floor(seaY + 4 + strip.progress * (seaHeight - 8)),
+          Math.floor(strip.width),
+          2,
+        );
+      });
+      ctx.globalAlpha = 1;
+    },
+  };
+}
+
+function createWaveLayer(seed, speed) {
+  const random = mulberry32(seed);
+  const tileWidth = window.innerWidth;
+  const waves = [];
+  for (let index = 0; index < 60; index++) {
+    const progress = random();
+    waves.push({
+      // Kept clear of the right edge so no stroke straddles the wrap.
+      x: random() * (tileWidth - 150),
+      progress,
+      width: (10 + progress * 70) * (0.5 + random()),
+      brightness: 0.05 + progress * 0.05 * random(),
+    });
+  }
+
+  return {
+    scrollOffset: 0,
+    speed,
+    wrapWidth: tileWidth,
+    draw(scrollOffset) {
+      const seaY = getSeaY();
+      const seaHeight = getGroundY() - seaY;
+      const drawX = Math.floor(scrollOffset);
+
+      ctx.fillStyle = "#afb9c8";
+      waves.forEach((wave) => {
+        ctx.globalAlpha = wave.brightness;
+        [0, tileWidth].forEach((shift) => {
+          ctx.fillRect(
+            Math.floor(drawX + shift + wave.x),
+            Math.floor(seaY + 4 + wave.progress * (seaHeight - 8)),
+            Math.floor(wave.width),
+            1,
+          );
+        });
+      });
+      ctx.globalAlpha = 1;
+    },
+  };
+}
+
+function drawLighthouse(centerX, baseY) {
+  const towerHeight = 46;
+  const baseWidth = 10;
+  const topWidth = 6;
+  const topY = baseY - towerHeight;
+  const lampY = topY - 5;
+  const glow = ctx.createRadialGradient(centerX, lampY, 1, centerX, lampY, 16);
+  glow.addColorStop(0, "rgba(255, 199, 110, 0.22)");
+  glow.addColorStop(1, "rgba(255, 199, 110, 0)");
+  ctx.fillStyle = glow;
+  ctx.fillRect(centerX - 16, lampY - 16, 32, 32);
+  const turn = (performance.now() / 1000) * 0.8;
+  const reach = Math.cos(turn) * 280;
+  if (Math.abs(reach) > 4) {
+    const tipX = centerX + reach;
+    const beam = ctx.createLinearGradient(centerX, 0, tipX, 0);
+    beam.addColorStop(0, "rgba(255, 199, 110, 0.3)");
+    beam.addColorStop(1, "rgba(255, 199, 110, 0)");
+    ctx.fillStyle = beam;
+    ctx.beginPath();
+    ctx.moveTo(centerX, lampY - 2);
+    ctx.lineTo(tipX, lampY - 12);
+    ctx.lineTo(tipX, lampY + 12);
+    ctx.lineTo(centerX, lampY + 2);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  ctx.fillStyle = "#0c1028";
+  ctx.beginPath();
+  ctx.moveTo(centerX - baseWidth / 2, baseY);
+  ctx.lineTo(centerX - topWidth / 2, topY);
+  ctx.lineTo(centerX + topWidth / 2, topY);
+  ctx.lineTo(centerX + baseWidth / 2, baseY);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillRect(centerX - 6, topY - 2, 12, 3);
+
+  ctx.fillStyle = "#ffc76e";
+  ctx.fillRect(centerX - 3, topY - 8, 6, 6);
+
+  ctx.fillStyle = "#0c1028";
+  ctx.beginPath();
+  ctx.moveTo(centerX - 5, topY - 8);
+  ctx.lineTo(centerX, topY - 14);
+  ctx.lineTo(centerX + 5, topY - 8);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function createHeadlandLayer(seed, speed) {
+  const random = mulberry32(seed);
+  const tileWidth = window.innerWidth;
+  const headlandWidth = 360;
+  const pointSpacing = 8;
+  const startX = 20 + random() * (tileWidth - headlandWidth - 40);
+  const phase = random() * Math.PI * 2;
+  const peakHeight = 26 + random() * 12;
+
+  // A raised sine gives one hill; the second sine makes its outline lumpy.
+  const heights = [];
+  for (let offset = 0; offset <= headlandWidth; offset += pointSpacing) {
+    const along = offset / headlandWidth;
+    const lumps = 0.85 + 0.15 * Math.sin(along * 9 + phase);
+    heights.push(peakHeight * Math.sin(Math.PI * along) ** 1.5 * lumps);
+  }
+
+  return {
+    scrollOffset: 0,
+    speed,
+    wrapWidth: tileWidth,
+    draw(scrollOffset) {
+      const waterY = getSeaY() + 2;
+      const drawX = Math.floor(scrollOffset);
+
+      [0, tileWidth].forEach((shift) => {
+        const left = drawX + shift + Math.floor(startX);
+        ctx.fillStyle = "#141935";
+        ctx.beginPath();
+        ctx.moveTo(left, waterY);
+        heights.forEach((height, index) => {
+          ctx.lineTo(left + index * pointSpacing, waterY - height);
+        });
+        ctx.lineTo(left + headlandWidth, waterY);
+        ctx.closePath();
+        ctx.fill();
+        const towerIndex = Math.floor(heights.length * 0.65);
+        drawLighthouse(
+          left + towerIndex * pointSpacing,
+          waterY - heights[towerIndex] + 1,
+        );
+      });
+    },
+  };
+}
+
 // Each biome is a list of layers, built once. Drawing only reads them.
 const biomeBuilders = {
   city: () => [createSkylineLayer(5, 25)],
@@ -646,9 +845,14 @@ const biomeBuilders = {
       lightCount: 14,
     }),
   ],
+  coast: () => [
+    createSeaLayer(71),
+    createHeadlandLayer(73, 6),
+    createWaveLayer(72, 18),
+  ],
 };
 
-const activeBiome = "fields";
+const activeBiome = "coast";
 const layers = biomeBuilders[activeBiome]();
 
 function updateLayers(dt) {
