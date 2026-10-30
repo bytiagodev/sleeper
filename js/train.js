@@ -11,6 +11,7 @@ const liveries = [
 const liningColor = "rgba(214, 176, 98, 0.7)";
 const moonlitEdge = "rgba(175, 190, 240, 0.55)";
 const couplingGap = 0.6;
+const tenderGap = 0.3;
 
 let trainVehicles = [];
 
@@ -23,7 +24,7 @@ function createTrain() {
     x += carriageLength + couplingGap;
   }
   vehicles.push({ kind: "tender", x, length: tenderLength });
-  x += tenderLength + couplingGap;
+  x += tenderLength + tenderGap;
   vehicles.push({ kind: "locomotive", x, length: locomotiveLength });
   return vehicles;
 }
@@ -83,9 +84,49 @@ function drawTrain() {
     }
     ctx.restore();
   });
+  drawCouplings(layout.pixel);
   drawTailLamp();
   drawSmoke();
   ctx.restore();
+}
+
+// What joins each vehicle to the next. The tender and locomotive are joined
+// by the locomotive itself, in drawLinkToTender.
+function drawCouplings(pixel) {
+  for (let i = 0; i + 1 < trainVehicles.length; i++) {
+    const front = trainVehicles[i + 1];
+    if (front.kind === "locomotive") continue;
+    const back = trainVehicles[i];
+    const bothCarriages = back.kind === "carriage" && front.kind === "carriage";
+    drawCoupling(back.x + back.length, front.x, bothCarriages, pixel);
+  }
+}
+
+// Each vehicle's buffers reach out and meet in the middle of the gap, and a
+// coupling below them pulls the train together. Between two sleeping cars a
+// covered gangway lets passengers walk from one to the next.
+function drawCoupling(fromX, toX, withGangway, pixel) {
+  const middle = (fromX + toX) / 2;
+
+  if (withGangway) {
+    ctx.fillStyle = "#14151e";
+    ctx.fillRect(fromX, -3.25, toX - fromX, 2.1);
+    ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+    for (let fold = fromX + 0.1; fold < toX; fold += 0.12) {
+      ctx.fillRect(fold, -3.25, pixel, 2.1);
+    }
+  }
+
+  ctx.fillStyle = "#0c0d13";
+  ctx.fillRect(fromX, -1.42, middle - fromX, 0.16);
+  ctx.fillRect(middle, -1.42, toX - middle, 0.16);
+  ctx.fillStyle = "#1d1f2a";
+  ctx.fillRect(middle - 0.05, -1.5, 0.04, 0.32);
+  ctx.fillRect(middle + 0.01, -1.5, 0.04, 0.32);
+  drawTopEdge(fromX, toX, -1.42, pixel);
+
+  ctx.fillStyle = "#0b0c12";
+  ctx.fillRect(fromX - 0.15, -1.08, toX - fromX + 0.3, 0.08);
 }
 
 // In a tunnel only the lights are drawn, over the darkness.

@@ -12,6 +12,10 @@ const crossheadY = -1.05;
 const chimneyX = 10.12;
 const chimneyTop = -4.12;
 
+const cabTop = -4.2;
+const cabWindowTop = -3.75;
+const cabWindowBottom = -2.62;
+
 const boilerTop = -3.33;
 const boilerBottom = -1.77;
 const runningPlateY = -1.72;
@@ -19,6 +23,14 @@ const runningPlateY = -1.72;
 const ironColor = "#15171f";
 
 function drawLocomotive(pixel) {
+  // The frames: deep steel plates behind the wheels that carry everything,
+  // from under the cab to the buffer beam. Steps hang down below the cab.
+  ctx.fillStyle = "#0b0c11";
+  ctx.fillRect(-0.05, runningPlateY, 10.7, 0.85);
+  ctx.fillRect(0.1, -0.9, 0.35, 0.12);
+  ctx.fillRect(0.1, -0.55, 0.35, 0.1);
+  ctx.fillRect(0.25, -0.9, 0.06, 0.45);
+
   for (const wheelX of [9.55, 10.45]) drawWheel(wheelX, -0.45, 0.45, 10, pixel);
   for (const wheelX of driverXs) drawWheel(wheelX, driverY, driverRadius, 16, pixel, true);
   drawRods(pixel);
@@ -45,6 +57,7 @@ function drawLocomotive(pixel) {
 
   drawBoiler(pixel);
   drawCab(pixel);
+  drawLinkToTender(pixel);
 
   // Red buffer beam and the buffers
   ctx.fillStyle = "#5e1712";
@@ -121,29 +134,43 @@ function drawBoiler(pixel) {
 }
 
 function drawCab(pixel) {
-  const cab = ctx.createLinearGradient(0, -3.95, 0, runningPlateY);
+  const cab = ctx.createLinearGradient(0, cabTop, 0, runningPlateY);
   cab.addColorStop(0, "#1a1c25");
   cab.addColorStop(1, "#08090c");
   ctx.fillStyle = cab;
-  ctx.fillRect(0, -3.95, 2.6, -1.72 + 3.95);
+  ctx.fillRect(0, cabTop, 2.6, runningPlateY - cabTop);
 
   ctx.fillStyle = "#12131a";
   ctx.beginPath();
-  ctx.moveTo(-0.18, -3.9);
-  ctx.quadraticCurveTo(1.3, -4.3, 2.78, -3.9);
-  ctx.lineTo(2.78, -3.82);
-  ctx.lineTo(-0.18, -3.82);
+  ctx.moveTo(-0.25, cabTop + 0.05);
+  ctx.quadraticCurveTo(1.3, cabTop - 0.4, 2.8, cabTop + 0.05);
+  ctx.lineTo(2.8, cabTop + 0.13);
+  ctx.lineTo(-0.25, cabTop + 0.13);
   ctx.fill();
   ctx.strokeStyle = moonlitEdge;
   ctx.lineWidth = pixel * 1.3;
   ctx.beginPath();
-  ctx.moveTo(-0.1, -3.93);
-  ctx.quadraticCurveTo(1.3, -4.28, 2.7, -3.93);
+  ctx.moveTo(-0.17, cabTop + 0.02);
+  ctx.quadraticCurveTo(1.3, cabTop - 0.38, 2.72, cabTop + 0.02);
   ctx.stroke();
 
   ctx.strokeStyle = liningColor;
   ctx.lineWidth = pixel;
-  ctx.strokeRect(0.15, -2.2, 2.3, 0.4);
+  ctx.strokeRect(0.15, -2.45, 2.3, 0.55);
+
+  // A grab rail up the back edge of the cab
+  ctx.fillStyle = "rgba(200, 210, 245, 0.4)";
+  ctx.fillRect(0.05, -3.6, pixel * 1.5, 1.75);
+}
+
+// The cab is open at the back. A steel plate bridges the gap to the tender
+// so the crew can walk across, and a drawbar underneath pulls the tender.
+function drawLinkToTender(pixel) {
+  ctx.fillStyle = "#0e1016";
+  ctx.fillRect(-tenderGap - 0.1, runningPlateY, tenderGap + 0.3, 0.1);
+  drawTopEdge(-tenderGap - 0.1, 0.2, runningPlateY, pixel);
+  ctx.fillStyle = "#0b0c12";
+  ctx.fillRect(-tenderGap - 0.2, -1.1, tenderGap + 0.5, 0.14);
 }
 
 // The wheels are joined by a coupling rod fixed off-centre on each wheel, so
@@ -218,29 +245,31 @@ function drawLocomotiveLights() {
   // The fire flickers: two slow waves that drift in and out of step.
   const flicker = 0.85 + Math.sin(seconds * 7.3) * 0.08 + Math.sin(seconds * 13.1) * 0.06;
 
-  const fire = ctx.createLinearGradient(0, -3.5, 0, -2.3);
+  const fire = ctx.createLinearGradient(0, cabWindowTop, 0, cabWindowBottom);
   fire.addColorStop(0, "#ff9a3c");
   fire.addColorStop(1, "#c2451a");
   ctx.fillStyle = fire;
   ctx.globalAlpha *= flicker;
   ctx.beginPath();
-  ctx.roundRect(0.45, -3.5, 1.4, 1.2, [0.35, 0.35, 0.05, 0.05]);
+  ctx.roundRect(0.45, cabWindowTop, 1.4, cabWindowBottom - cabWindowTop, [0.35, 0.35, 0.05, 0.05]);
   ctx.fill();
   ctx.globalAlpha /= flicker;
 
-  // The driver, in profile, looking ahead
+  // The driver, seen side on and looking ahead, from the waist up. The sill
+  // is at waist height, about a metre above the cab floor.
   ctx.fillStyle = "#140804";
   ctx.beginPath();
-  ctx.ellipse(1.25, -3.02, 0.16, 0.19, 0, 0, Math.PI * 2);
+  ctx.ellipse(1.33, -3.34, 0.13, 0.15, 0, 0, Math.PI * 2);
   ctx.fill();
-  ctx.fillRect(1.05, -3.27, 0.36, 0.1);
+  ctx.fillRect(1.18, -3.54, 0.3, 0.1);
+  ctx.fillRect(1.42, -3.48, 0.14, 0.04);
   ctx.beginPath();
-  ctx.moveTo(0.8, -2.3);
-  ctx.quadraticCurveTo(0.85, -2.8, 1.22, -2.82);
-  ctx.quadraticCurveTo(1.55, -2.78, 1.62, -2.3);
+  ctx.moveTo(0.95, cabWindowBottom);
+  ctx.quadraticCurveTo(1.0, -3.12, 1.3, -3.16);
+  ctx.quadraticCurveTo(1.62, -3.1, 1.68, cabWindowBottom);
   ctx.fill();
 
-  drawGlow(1.15, -2.9, 2.6, "255, 120, 40", 0.35 * flicker);
+  drawGlow(1.15, -3.2, 2.6, "255, 120, 40", 0.35 * flicker);
 
   for (const lamp of [{ x: 10.45, y: -3.45 }, { x: 10.78, y: -1.95 }]) {
     ctx.fillStyle = "#141620";

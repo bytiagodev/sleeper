@@ -93,12 +93,6 @@ function drawCarriage(carriage, pixel) {
     ctx.fill();
   });
 
-  // Gangway bellows to the next vehicle and the buffers
-  ctx.fillStyle = "#14151e";
-  ctx.fillRect(length, -3.2, couplingGap, 2.2);
-  ctx.fillStyle = "#0c0d13";
-  ctx.fillRect(-0.2, -1.4, 0.2, 0.25);
-  ctx.fillRect(length, -1.4, 0.2, 0.25);
 }
 
 function drawCarriageRoof(length, pixel) {
