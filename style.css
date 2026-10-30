@@ -11,3 +11,35 @@ body {
 canvas {
   display: block;
 }
+
+/* Quiet until you reach for it: half visible at rest, full on hover. */
+#new-journey {
+  position: fixed;
+  left: 24px;
+  bottom: 24px;
+  padding: 10px 18px;
+  font: 600 13px "Manrope", system-ui, sans-serif;
+  letter-spacing: 0.04em;
+  color: #f2ead8;
+  background: rgba(9, 11, 24, 0.55);
+  border: 1px solid rgba(242, 234, 216, 0.22);
+  border-radius: 999px;
+  cursor: pointer;
+  opacity: 0.55;
+  transition:
+    opacity 0.4s,
+    border-color 0.4s;
+}
+
+#new-journey:hover,
+#new-journey:focus-visible {
+  opacity: 1;
+  border-color: rgba(242, 234, 216, 0.5);
+  outline: none;
+}
+
+/* Resting while the train is in a tunnel. */
+#new-journey:disabled {
+  opacity: 0.15;
+  cursor: default;
+}

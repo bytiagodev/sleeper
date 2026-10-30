@@ -4,16 +4,19 @@ A night train you watch from outside.
 
 A steam train crosses the frame while a generated world scrolls past behind it: city lights, pine forest, open fields, a moonlit coast, mountains. Everything on screen is drawn by code. There are no image files in this repository, no frameworks and no build step. The world is silhouettes, gradients and glow, which is what night looks like.
 
-> Work in progress. The landscapes, the train, the weather and the seeded journey generator are done. Tunnels and the journey timeline are next. See the roadmap below.
+> Work in progress. The landscapes, the train, the weather, tunnels and the journey timeline are done. Next is the journey label, a reduced-motion fallback and deployment. See the roadmap below.
 
 ## Run it
 
 Open `index.html` in a browser. Nothing to install.
 
-While developing:
+Press **New journey** for a different ride.
 
-- To switch landscape, change `activeBiome` near the bottom of `main.js` to one of `"city"`, `"forest"`, `"fields"`, `"coast"` or `"mountains"`.
-- To switch weather, change `activeWeather` near the top of `main.js` from `journey.weather` to `"clear"`, `"rain"` or `"snow"`.
+While developing, in `main.js`:
+
+- To replay one journey, change `startJourney(randomSeed())` at the bottom to a fixed number, such as `startJourney(2)`.
+- To force a weather, change `activeWeather = journey.weather` inside `startJourney` to `"clear"`, `"rain"` or `"snow"`.
+- To reach the tunnels faster, shorten the biome time in `generateJourney` (`50 + random() * 30` seconds).
 
 ## What is in it
 
@@ -32,7 +35,9 @@ While developing:
 - **Rain:** angled streaks, a darker world, a wider glow around the windows and drops sliding down the carriage glass.
 - **Snow:** drifting, swaying flakes, a brighter edge where snow lies on the ground, and snow caps on the mountain peaks.
 
-**Seeded journeys.** A journey is a number. The same number always produces the same biome sequence, weather, time and train, which is what will make journeys shareable by link.
+**Tunnels.** A journey passes through two to four landscapes, each lasting about a minute, and loops when it reaches the end. Between landscapes the train enters a tunnel: the world fades to near black, only the train's windows and lamps stay lit, and the next landscape opens up as it leaves. **New journey** fades the whole frame to black and starts a different ride in the dark.
+
+**Seeded journeys.** A journey is a number. The same number always produces the same biome sequence, landscapes, weather, time and train, which is what will make journeys shareable by link.
 
 ## How it works
 
@@ -46,6 +51,9 @@ While developing:
 - **Weather depth.** Particles sit in three depth bands, like the layers. They drift sideways at the speed of the world at their depth, because the camera rides with the train, and that drift is what slants the rain. Only the nearest band is drawn in front of the train.
 - **Batched drawing.** Each weather band is one path and one draw call, which keeps hundreds of particles at 60 fps.
 - **Glow.** Windows and lamps glow through canvas shadow blur in a warm colour, not through images.
+- **Journey timeline.** A small state object tracks whether the train is in the open or in a tunnel and how long it has been there. The new landscape is built halfway through the tunnel, while the screen is dark, so the swap is never seen.
+- **Easing.** The tunnel fades follow an ease-in-out curve instead of a straight line, so the light leaves and returns gently rather than switching on and off.
+- **Lights through the dark.** The darkness is drawn over everything, then the train's lights are drawn again on top at the same strength, so they stay lit while the rest of the world disappears.
 
 ## Roadmap
 
@@ -55,8 +63,8 @@ While developing:
 - [x] Five landscapes
 - [x] The train
 - [x] Weather: rain and snow
-- [ ] Tunnels between landscapes and the journey timeline
-- [ ] The "new journey" button, reduced-motion fallback and deployment
+- [x] Tunnels between landscapes, the journey timeline and the "new journey" button
+- [ ] Journey label, reduced-motion fallback and deployment
 
 Later, if it gets that far: stations, fog, synthesised rain and rail sound, and journeys shared by link.
 

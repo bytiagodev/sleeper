@@ -42,12 +42,16 @@ function generateJourney(seed) {
   const stationChance = 0.3;
   const stations = biomes.map(() => random() < stationChance);
 
-  return { seed, biomes, weather, hour, minute, train, stations };
+  // Rolled last, so adding them left every earlier pick unchanged.
+  const biomeSeconds = biomes.map(() => 50 + random() * 30);
+
+  return { seed, biomes, weather, hour, minute, train, stations, biomeSeconds };
 }
 
-// Built before the biomes, because snow changes how the mountains are drawn.
-const journey = generateJourney(42);
-const activeWeather = journey.weather;
+// The current journey. startJourney fills these in, and "New journey"
+// replaces them.
+let journey;
+let activeWeather;
 
 function generateSkyline(random, skylineWidth) {
   const buildings = [];
@@ -105,6 +109,7 @@ function update(dt) {
   currentSpeedFactor = speedFactor;
   updateLayers(dt * speedFactor);
   updateWeather(dt);
+  updateTimeline(dt);
   travelled += trainSpeed * speedFactor * dt;
 }
 
@@ -876,21 +881,23 @@ function createHeadlandLayer(seed, speed) {
 }
 
 // Each biome is a list of layers, built once. Drawing only reads them.
+// Every seed is offset from the journey seed, so a new journey grows a new
+// skyline, forest and coast, while one journey always grows the same ones.
 const biomeBuilders = {
-  city: () => [createSkylineLayer(5, 25)],
+  city: () => [createSkylineLayer(journey.seed + 5, 25)],
   forest: () => [
-    createForestLayer(31, 2.5, 0.45, "#0c0e1c", 22),
-    createForestLayer(21, 2, 0.7, "#080a14", 40),
-    createForestLayer(11, 1.6, 1, "#05060d", 70),
+    createForestLayer(journey.seed + 31, 2.5, 0.45, "#0c0e1c", 22),
+    createForestLayer(journey.seed + 21, 2, 0.7, "#080a14", 40),
+    createForestLayer(journey.seed + 11, 1.6, 1, "#05060d", 70),
   ],
   fields: () => [
-    createHorizonLayer(2, 20),
+    createHorizonLayer(journey.seed + 2, 20),
     createFurrowLayer(300),
-    createFenceLayer(51, 90),
+    createFenceLayer(journey.seed + 51, 90),
   ],
   mountains: () => [
     createMountainLayer({
-      seed: 61,
+      seed: journey.seed + 61,
       speed: 10,
       color: "#161a3a",
       maxHeight: 210,
@@ -899,7 +906,7 @@ const biomeBuilders = {
       snowCapColor: activeWeather === "snow" ? "#4d5588" : null,
     }),
     createMountainLayer({
-      seed: 62,
+      seed: journey.seed + 62,
       speed: 22,
       color: "#10142e",
       maxHeight: 140,
@@ -908,7 +915,7 @@ const biomeBuilders = {
       snowCapColor: activeWeather === "snow" ? "#323966" : null,
     }),
     createMountainLayer({
-      seed: 63,
+      seed: journey.seed + 63,
       speed: 40,
       color: "#0b0f24",
       maxHeight: 60,
@@ -917,14 +924,14 @@ const biomeBuilders = {
     }),
   ],
   coast: () => [
-    createSeaLayer(71),
-    createHeadlandLayer(73, 6),
-    createWaveLayer(72, 18),
+    createSeaLayer(journey.seed + 71),
+    createHeadlandLayer(journey.seed + 73, 6),
+    createWaveLayer(journey.seed + 72, 18),
   ],
 };
 
-const activeBiome = "coast";
-const layers = biomeBuilders[activeBiome]();
+let activeBiome;
+let layers = [];
 
 function updateLayers(dt) {
   for (const layer of layers) {
@@ -1053,6 +1060,16 @@ function drawLocomotive(leftX, railY, distance) {
 
   drawWheel(leftX + 172, railY - 8, 7, distance);
 
+  drawLocomotiveLights(leftX, railY);
+}
+
+// Everything on the locomotive that gives off light. Kept apart from the body
+// so a tunnel can draw the lights alone.
+function drawLocomotiveLights(leftX, railY) {
+  const cabTop = railY - 92;
+  const boilerRight = leftX + 178;
+  const boilerTop = railY - 70;
+
   // Cab window: the blurred shadow is the glow
   const windowX = leftX + 11;
   const windowY = cabTop + 16;
@@ -1148,11 +1165,16 @@ function createCarriageWindows(random) {
   return panes;
 }
 
-const carriageWindowSets = [];
-for (let index = 0; index < journey.train.carriages; index++) {
-  carriageWindowSets.push(
-    createCarriageWindows(mulberry32(journey.seed * 1000 + index)),
-  );
+let carriageWindowSets = [];
+
+function createCarriageWindowSets() {
+  const windowSets = [];
+  for (let index = 0; index < journey.train.carriages; index++) {
+    windowSets.push(
+      createCarriageWindows(mulberry32(journey.seed * 1000 + index)),
+    );
+  }
+  return windowSets;
 }
 
 const carriageWidth = 210;
@@ -1193,6 +1215,21 @@ function drawCarriage(leftX, railY, panes, distance) {
   );
   ctx.stroke();
 
+  drawCarriageGlass(leftX, railY, panes);
+
+  // Two wheel pairs under the ends
+  ctx.lineWidth = 1.5;
+  [22, 40, 170, 188].forEach((wheelOffset) => {
+    drawWheel(leftX + wheelOffset, railY - 9, 9, distance);
+  });
+}
+
+// The windows with whoever sits behind them. Kept apart from the body so a
+// tunnel can draw the lit glass alone.
+function drawCarriageGlass(leftX, railY, panes) {
+  const bodyColor = "#141935";
+  const bodyTop = railY - 78;
+
   // Windows: lit or dim, each with a soft glow. Wet air spreads the glow
   // wider, so rain doubles the blur.
   const glowScale = activeWeather === "rain" ? 2 : 1;
@@ -1222,12 +1259,6 @@ function drawCarriage(leftX, railY, panes, distance) {
 
   // The glass is in front of the passengers, so the drips go on top of them.
   if (activeWeather === "rain") drawWindowDrips(leftX, bodyTop + 16, panes);
-
-  // Two wheel pairs under the ends
-  ctx.lineWidth = 1.5;
-  [22, 40, 170, 188].forEach((wheelOffset) => {
-    drawWheel(leftX + wheelOffset, railY - 9, 9, distance);
-  });
 }
 
 // Each drip slides down its pane on the clock and starts again at the top.
@@ -1264,30 +1295,54 @@ function drawTailLamp(lampX, railY) {
   ctx.shadowBlur = 0;
 }
 
-function drawTrain() {
-  const railY = getRailY();
-  ctx.fillStyle = "#3d4577";
-  ctx.fillRect(0, railY, window.innerWidth, 2);
-
+// Where every part of the train sits this frame. Both the full train and
+// its lights alone read from here, so they always line up.
+function getTrainLayout() {
   const seconds = performance.now() / 1000;
-  const distance = travelled;
-  const bob = Math.sin(seconds * 1.7) * 0.6 + Math.sin(seconds * 4.3) * 0.25;
-  ctx.save();
-  ctx.translate(0, bob);
-
   const couplingGap = 12;
   const carriageSpacing = carriageWidth + couplingGap;
   const carriageCount = carriageWindowSets.length;
   const trainWidth = carriageCount * carriageSpacing + 88 + 202;
   const trainLeft = Math.floor((window.innerWidth - trainWidth) / 2);
-  carriageWindowSets.forEach((panes, index) => {
-    drawCarriage(trainLeft + index * carriageSpacing, railY, panes, distance);
-  });
   const tenderLeft = trainLeft + carriageCount * carriageSpacing;
-  drawTender(tenderLeft, railY, distance);
-  drawLocomotive(tenderLeft + 88, railY, distance);
-  drawTailLamp(trainLeft - 6, railY);
 
+  return {
+    railY: getRailY(),
+    bob: Math.sin(seconds * 1.7) * 0.6 + Math.sin(seconds * 4.3) * 0.25,
+    trainLeft,
+    carriageSpacing,
+    tenderLeft,
+    locomotiveLeft: tenderLeft + 88,
+  };
+}
+
+function drawTrain() {
+  const train = getTrainLayout();
+  ctx.fillStyle = "#3d4577";
+  ctx.fillRect(0, train.railY, window.innerWidth, 2);
+
+  ctx.save();
+  ctx.translate(0, train.bob);
+  carriageWindowSets.forEach((panes, index) => {
+    const carriageLeft = train.trainLeft + index * train.carriageSpacing;
+    drawCarriage(carriageLeft, train.railY, panes, travelled);
+  });
+  drawTender(train.tenderLeft, train.railY, travelled);
+  drawLocomotive(train.locomotiveLeft, train.railY, travelled);
+  drawTailLamp(train.trainLeft - 6, train.railY);
+  ctx.restore();
+}
+
+function drawTrainLights() {
+  const train = getTrainLayout();
+  ctx.save();
+  ctx.translate(0, train.bob);
+  carriageWindowSets.forEach((panes, index) => {
+    const carriageLeft = train.trainLeft + index * train.carriageSpacing;
+    drawCarriageGlass(carriageLeft, train.railY, panes);
+  });
+  drawLocomotiveLights(train.locomotiveLeft, train.railY);
+  drawTailLamp(train.trainLeft - 6, train.railY);
   ctx.restore();
 }
 
@@ -1301,7 +1356,7 @@ const particleCounts = { clear: 0, rain: 420, snow: 270 };
 
 // Respawns happen inside the frame loop, so they use their own seeded
 // generator instead of Math.random. The scenery never reads from it.
-const weatherRandom = mulberry32(journey.seed + 7000);
+let weatherRandom;
 
 // The camera rides with the train, so anything hanging in the air drifts
 // left at the speed of the world at its depth. That drift tilts the rain.
@@ -1350,7 +1405,7 @@ function createWeatherBands() {
   });
 }
 
-const weatherBands = createWeatherBands();
+let weatherBands = [];
 
 function updateWeather(dt) {
   for (const band of weatherBands) {
@@ -1419,6 +1474,121 @@ function drawRainShade() {
   ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
 }
 
+// Journey timeline and tunnels
+
+const tunnelEnterSeconds = 1.8;
+const tunnelHoldSeconds = 3;
+const tunnelExitSeconds = 2.4;
+const tunnelSeconds = tunnelEnterSeconds + tunnelHoldSeconds + tunnelExitSeconds;
+// The world is swapped halfway through the hold, while nothing can be seen.
+const tunnelSwapSeconds = tunnelEnterSeconds + tunnelHoldSeconds / 2;
+
+// "open" while a biome is showing, "tunnel" between two biomes. elapsed
+// counts seconds since the current stage began. nextSeed is only set by the
+// button: that tunnel ends in a new journey instead of the next biome.
+const timeline = {
+  stage: "open",
+  elapsed: 0,
+  biomeIndex: 0,
+  swapped: false,
+  nextSeed: null,
+};
+
+const newJourneyButton = document.getElementById("new-journey");
+
+// Math.random only chooses which journey. Everything after that comes from
+// the seed, so the journey itself is still reproducible.
+function randomSeed() {
+  return Math.floor(Math.random() * 4294967296);
+}
+
+function showBiome(index) {
+  timeline.biomeIndex = index;
+  activeBiome = journey.biomes[index];
+  layers = biomeBuilders[activeBiome]();
+}
+
+// Everything that depends on the seed is rebuilt here, in one place, so no
+// part of the old journey can leak into the new one.
+function startJourney(seed) {
+  journey = generateJourney(seed);
+  activeWeather = journey.weather;
+  carriageWindowSets = createCarriageWindowSets();
+  weatherRandom = mulberry32(journey.seed + 7000);
+  weatherBands = createWeatherBands();
+  showBiome(0);
+}
+
+function enterTunnel(nextSeed) {
+  timeline.stage = "tunnel";
+  timeline.elapsed = 0;
+  timeline.swapped = false;
+  timeline.nextSeed = nextSeed;
+  newJourneyButton.disabled = true;
+}
+
+function updateTimeline(dt) {
+  timeline.elapsed += dt;
+
+  if (timeline.stage === "open") {
+    const biomeSeconds = journey.biomeSeconds[timeline.biomeIndex];
+    if (timeline.elapsed >= biomeSeconds) enterTunnel(null);
+    return;
+  }
+
+  if (!timeline.swapped && timeline.elapsed >= tunnelSwapSeconds) {
+    timeline.swapped = true;
+    if (timeline.nextSeed !== null) {
+      startJourney(timeline.nextSeed);
+    } else {
+      // After the last biome the journey loops back to the first.
+      showBiome((timeline.biomeIndex + 1) % journey.biomes.length);
+    }
+  }
+
+  if (timeline.elapsed >= tunnelSeconds) {
+    timeline.stage = "open";
+    timeline.elapsed = 0;
+    timeline.nextSeed = null;
+    newJourneyButton.disabled = false;
+  }
+}
+
+// Easing reshapes a progress value from 0 to 1. A straight line starts and
+// stops abruptly; this curve starts slowly, speeds up through the middle and
+// settles slowly, which is how a fade feels natural to the eye.
+function easeInOut(progress) {
+  if (progress < 0.5) return 2 * progress * progress;
+  return 1 - (-2 * progress + 2) ** 2 / 2;
+}
+
+function getTunnelDarkness() {
+  if (timeline.stage !== "tunnel") return 0;
+  const time = timeline.elapsed;
+  if (time < tunnelEnterSeconds) return easeInOut(time / tunnelEnterSeconds);
+  if (time < tunnelEnterSeconds + tunnelHoldSeconds) return 1;
+  const exitTime = time - tunnelEnterSeconds - tunnelHoldSeconds;
+  return 1 - easeInOut(Math.min(1, exitTime / tunnelExitSeconds));
+}
+
+// Darkness covers the whole frame, train included. Between biomes the lights
+// are then drawn again on top, at the same strength as the darkness, so they
+// stay lit while everything else fades. A new journey fades fully to black,
+// because the train itself may change in the dark.
+function drawTunnel() {
+  const darkness = getTunnelDarkness();
+  if (darkness === 0) return;
+
+  ctx.fillStyle = `rgba(3, 4, 9, ${darkness})`;
+  ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
+
+  if (timeline.nextSeed === null) {
+    ctx.globalAlpha = darkness;
+    drawTrainLights();
+    ctx.globalAlpha = 1;
+  }
+}
+
 function draw() {
   drawSky();
   drawMoon();
@@ -1428,8 +1598,15 @@ function draw() {
   drawWeather(false);
   drawTrain();
   drawWeather(true);
+  drawTunnel();
 }
+
+newJourneyButton.addEventListener("click", () => {
+  if (timeline.stage === "tunnel") return;
+  enterTunnel(randomSeed());
+});
 
 resize();
 window.addEventListener("resize", resize);
+startJourney(randomSeed());
 requestAnimationFrame(loop);
