@@ -44,6 +44,7 @@ function loop(currentTime) {
   lastTime = currentTime;
 
   updateMotion(dt);
+  updateSmoke(dt);
   updateWeather(dt);
   updateTimeline(dt);
   draw();

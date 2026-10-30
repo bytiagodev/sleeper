@@ -33,7 +33,7 @@ While developing, in `main.js`:
 - **Coast:** a sea that mirrors the sky at the horizon, a broken moon reflection that shimmers, drifting waves, and a headland with a lighthouse and a sweeping beam.
 - **Mountains:** layered ranges with sharp peaks, a rim of moonlight on the slopes, rolling foothills and a few distant lights.
 
-**The train.** An old steam locomotive with a tender and one to three carriages. The wheels turn with the distance travelled, the coupling rod rides on pins that circle the hubs, the headlamp throws a beam ahead, and a red lamp marks the tail. Carriage windows glow warm or dim, with passengers in some of them. The whole train bobs slightly and its speed drifts gently, so it never feels mechanical.
+**The train.** A steam locomotive, its tender and one to three sleeping cars in maroon, green or blue, all drawn to scale in metres. The driving wheels carry counterweights and a coupling rod, and a connecting rod drives a crosshead that slides back and forth as the wheels turn. The fire glows through the cab, two lamps light the way ahead, and smoke leaves the chimney four times per turn of the wheels and trails back over the train. Some compartments are lit, some dim and some already dark; light from the windows falls on the ground in front of the train. Each vehicle rocks a little on its own springs.
 
 **Weather.** Clear, rain or snow, chosen by the journey:
 
@@ -57,7 +57,10 @@ While developing, in `main.js`:
 | `js/sky.js` | Sky, stars, moon, clouds and the ground plane |
 | `js/track.js` | Ballast, sleepers, rails, telegraph poles and the grass in front |
 | `js/biomes/*.js` | The five landscapes, and `builders.js`, which assembles them |
-| `js/train.js` | The train |
+| `js/train.js` | The train as a whole: its vehicles, where it sits on screen, wheels, light on the ground |
+| `js/carriages.js` | Sleeping cars, their windows and passengers |
+| `js/locomotive.js` | The locomotive, its rods and lamps, and the tender |
+| `js/smoke.js` | Smoke from the chimney |
 | `js/weather.js` | Rain and snow |
 | `js/timeline.js` | Biomes, tunnels and starting a journey |
 | `main.js` | Speed, the frame loop and the order things are drawn in |
@@ -73,6 +76,8 @@ While developing, in `main.js`:
 - **Glows add light.** Every lamp and lit window stamps a soft glow painted once per colour, drawn with the "lighter" blend so the glow brightens what is under it.
 - **Moonlit edges.** Trees, buildings and poles are filled once in moonlight, shifted a pixel up and to the right, then again in their own colour, which leaves a thin lit edge on the moon's side.
 - **Batched drawing.** Each row of trees, each set of sleepers and each weather band is one path and one draw call.
+- **The train in metres.** Before the train is drawn, the canvas is moved to its left end at rail height and scaled so one unit is one metre, so the train is measured the same way as the world around it.
+- **Smoke follows the wheels.** A puff leaves the chimney every quarter turn of the driving wheels. Once out, the smoke stays where it is while the train moves on, so it trails back along the train as it rises and spreads.
 - **Journey timeline.** A small state object tracks whether the train is in the open or in a tunnel. The new landscape is built halfway through the tunnel, while the screen is dark, so the swap is never seen.
 - **Journey names.** Each journey's name is built from its departure time, its landscapes and its weather. The name has its own seeded random stream, so naming a journey never changes the journey.
 - **Fits any screen.** The camera is sized to the window, so a resize only needs a new camera. On a narrow screen the locomotive stays in view while the tail runs off the edge.
@@ -81,14 +86,13 @@ While developing, in `main.js`:
 
 The first version is in the git history (canvas, layers, seeded journeys, five landscapes, the train, weather, tunnel fades, names). The rebuild:
 
-- [x] **Phase 0.** Split the single script into files
-- [x] **Phase 1.** A camera in metres: correct scale and speed for everything, a real track with sleepers and two rails, telegraph poles, grass in front of the line
-- [x] **Phase 2.** Textures and light: noise textures made once at startup, a glow pass, moonlight from one side, stars, a textured moon with a halo, clouds
-- [ ] **Phase 3.** The train rebuilt: real proportions, spoked wheels with rods that move like real ones, liveries, firebox glow, window light on the ground, steam and smoke
-- [ ] **Phase 4.** The five landscapes rebuilt on the new system, with fog as a fourth weather and haze with distance
-- [ ] **Phase 5.** Braking and stations, and real tunnels with portals the train disappears into
-- [ ] **Phase 6.** Sound made in the browser: puffs timed to the wheels, rail joints, brakes, the whistle, echo in tunnels, rain and wind
-- [ ] **Phase 7.** Performance, mobile, journeys shared by link, a new preview image
+- [x] **Rebuild 1.** Split the single script into files, and a camera in metres: correct scale and speed for everything, a real track with sleepers and two rails, telegraph poles, grass in front of the line
+- [x] **Rebuild 2.** Textures and light: noise textures made once at startup, glows, moonlit edges, stars, a textured moon, clouds, a textured ground
+- [x] **Rebuild 3.** The train rebuilt: real proportions, spoked wheels with rods that move like real ones, liveries, firebox glow, window light on the ground, smoke
+- [ ] **Rebuild 4.** The five landscapes rebuilt on the new system, with fog as a fourth weather and haze with distance
+- [ ] **Rebuild 5.** Braking and stations, and real tunnels with portals the train disappears into
+- [ ] **Rebuild 6.** Sound made in the browser: puffs timed to the wheels, rail joints, brakes, the whistle, echo in tunnels, rain and wind
+- [ ] **Rebuild 7.** Performance, mobile, journeys shared by link, a new preview image
 
 ## Palette
 

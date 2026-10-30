@@ -26,7 +26,8 @@ function showBiome(index) {
 function startJourney(seed) {
   journey = generateJourney(seed);
   activeWeather = journey.weather;
-  carriageWindowSets = createCarriageWindowSets();
+  trainVehicles = createTrain();
+  resetSmoke();
   weatherRandom = seededRandom(journey.seed + 7000);
   weatherBands = createWeatherBands();
   buildSky();
