@@ -45,6 +45,10 @@ function generateJourney(seed) {
   return { seed, biomes, weather, hour, minute, train, stations };
 }
 
+// Built before the biomes, because snow changes how the mountains are drawn.
+const journey = generateJourney(42);
+const activeWeather = journey.weather;
+
 function generateSkyline(random, skylineWidth) {
   const buildings = [];
   let nextBuildingLeft = 0;
@@ -90,6 +94,7 @@ function loop(currentTime) {
 
 const trainSpeed = 60;
 let travelled = 0;
+let currentSpeedFactor = 1;
 
 function getSpeedFactor(seconds) {
   return 1 + Math.sin(seconds * 0.15) * 0.12 + Math.sin(seconds * 0.37) * 0.03;
@@ -97,7 +102,9 @@ function getSpeedFactor(seconds) {
 
 function update(dt) {
   const speedFactor = getSpeedFactor(performance.now() / 1000);
+  currentSpeedFactor = speedFactor;
   updateLayers(dt * speedFactor);
+  updateWeather(dt);
   travelled += trainSpeed * speedFactor * dt;
 }
 
@@ -140,6 +147,18 @@ function drawGround() {
   const groundY = getGroundY();
   ctx.fillStyle = groundColors[activeBiome];
   ctx.fillRect(0, groundY, window.innerWidth, window.innerHeight - groundY);
+  if (activeWeather === "snow") drawSnowyGroundLine(groundY);
+}
+
+// Snow lying on the ground catches the moonlight, so the edge gets brighter.
+function drawSnowyGroundLine(groundY) {
+  const settledSnow = ctx.createLinearGradient(0, groundY, 0, groundY + 40);
+  settledSnow.addColorStop(0, "rgba(232, 236, 244, 0.14)");
+  settledSnow.addColorStop(1, "rgba(232, 236, 244, 0)");
+  ctx.fillStyle = settledSnow;
+  ctx.fillRect(0, groundY, window.innerWidth, 40);
+  ctx.fillStyle = "rgba(232, 236, 244, 0.3)";
+  ctx.fillRect(0, groundY, window.innerWidth, 1);
 }
 
 const windowSize = 6;
@@ -395,6 +414,16 @@ function createHorizonLayer(seed, speed) {
       ctx.closePath();
       ctx.fill();
 
+      if (activeWeather === "snow") {
+        ctx.strokeStyle = "rgba(232, 236, 244, 0.3)";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        for (let x = 0; x <= width * 2; x += 10) {
+          ctx.lineTo(drawX + x, groundY - riseAt(x));
+        }
+        ctx.stroke();
+      }
+
       ctx.fillStyle = "#0e1222";
       trees.forEach((tree) => {
         [0, width].forEach((copyShift) => {
@@ -551,6 +580,7 @@ function createMountainLayer({
   ridged,
   lightCount = 0,
   rimAlpha = 0,
+  snowCapColor = null,
 }) {
   const random = mulberry32(seed);
   const pointCount = Math.ceil(window.innerWidth / ridgeStep);
@@ -568,6 +598,14 @@ function createMountainLayer({
     });
   }
 
+  // Rolled after the lights, so adding snow never moves the lights.
+  // A slow wave plus a little jitter keeps the snow line from looking ruled.
+  const snowLinePhase = random() * Math.PI * 2;
+  const snowLine = heights.map((height, index) => {
+    const wave = Math.sin((index / pointCount) * Math.PI * 8 + snowLinePhase);
+    return maxHeight * (0.74 + wave * 0.06 + random() * 0.03);
+  });
+
   return {
     scrollOffset: 0,
     speed,
@@ -579,15 +617,37 @@ function createMountainLayer({
       const pointX = (index) => drawX + index * ridgeStep;
       const pointY = (index) => baseY - heights[index % pointCount];
 
-      ctx.fillStyle = color;
-      ctx.beginPath();
-      ctx.moveTo(drawX, baseY);
-      for (let index = 0; index <= lastIndex; index++) {
-        ctx.lineTo(pointX(index), pointY(index));
+      function traceRidge() {
+        ctx.beginPath();
+        ctx.moveTo(drawX, baseY);
+        for (let index = 0; index <= lastIndex; index++) {
+          ctx.lineTo(pointX(index), pointY(index));
+        }
+        ctx.lineTo(pointX(lastIndex), baseY);
+        ctx.closePath();
       }
-      ctx.lineTo(pointX(lastIndex), baseY);
-      ctx.closePath();
+
+      ctx.fillStyle = color;
+      traceRidge();
       ctx.fill();
+
+      // The clip keeps the snow inside the mountain, so only the parts of the
+      // ridge above the snow line turn white.
+      if (snowCapColor) {
+        ctx.save();
+        traceRidge();
+        ctx.clip();
+        ctx.fillStyle = snowCapColor;
+        ctx.beginPath();
+        ctx.moveTo(drawX, 0);
+        for (let index = 0; index <= lastIndex; index++) {
+          ctx.lineTo(pointX(index), baseY - snowLine[index % pointCount]);
+        }
+        ctx.lineTo(pointX(lastIndex), 0);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
 
       // Slopes that face the moon catch a thin edge of light.
       if (rimAlpha > 0) {
@@ -836,6 +896,7 @@ const biomeBuilders = {
       maxHeight: 210,
       ridged: true,
       rimAlpha: 0.22,
+      snowCapColor: activeWeather === "snow" ? "#4d5588" : null,
     }),
     createMountainLayer({
       seed: 62,
@@ -844,6 +905,7 @@ const biomeBuilders = {
       maxHeight: 140,
       ridged: true,
       rimAlpha: 0.14,
+      snowCapColor: activeWeather === "snow" ? "#323966" : null,
     }),
     createMountainLayer({
       seed: 63,
@@ -1071,10 +1133,21 @@ function createCarriageWindows(random) {
       passengerX: 5 + random() * 8,
     });
   }
+
+  // Raindrops on the glass, rolled after the panes so passengers stay put.
+  panes.forEach((pane) => {
+    pane.drips = [];
+    for (let drip = 0; drip < 2; drip++) {
+      pane.drips.push({
+        fromLeft: 2 + random() * 14,
+        speed: 0.12 + random() * 0.2,
+        phase: random(),
+      });
+    }
+  });
   return panes;
 }
 
-const journey = generateJourney(42);
 const carriageWindowSets = [];
 for (let index = 0; index < journey.train.carriages; index++) {
   carriageWindowSets.push(
@@ -1120,13 +1193,15 @@ function drawCarriage(leftX, railY, panes, distance) {
   );
   ctx.stroke();
 
-  // Windows: lit or dim, each with a soft glow
+  // Windows: lit or dim, each with a soft glow. Wet air spreads the glow
+  // wider, so rain doubles the blur.
+  const glowScale = activeWeather === "rain" ? 2 : 1;
   panes.forEach((pane, index) => {
     ctx.fillStyle = pane.dim ? "#c98f4a" : "#ffc76e";
     ctx.shadowColor = pane.dim
       ? "rgba(201, 143, 74, 0.4)"
       : "rgba(255, 199, 110, 0.6)";
-    ctx.shadowBlur = pane.dim ? 4 : 8;
+    ctx.shadowBlur = (pane.dim ? 4 : 8) * glowScale;
     ctx.fillRect(leftX + 14 + index * 28, bodyTop + 16, 18, 22);
   });
   ctx.shadowBlur = 0;
@@ -1145,10 +1220,34 @@ function drawCarriage(leftX, railY, panes, distance) {
     ctx.fill();
   });
 
+  // The glass is in front of the passengers, so the drips go on top of them.
+  if (activeWeather === "rain") drawWindowDrips(leftX, bodyTop + 16, panes);
+
   // Two wheel pairs under the ends
   ctx.lineWidth = 1.5;
   [22, 40, 170, 188].forEach((wheelOffset) => {
     drawWheel(leftX + wheelOffset, railY - 9, 9, distance);
+  });
+}
+
+// Each drip slides down its pane on the clock and starts again at the top.
+// The modulo 1 is the same wrap trick the layers use, on a 0 to 1 scale.
+function drawWindowDrips(leftX, windowTop, panes) {
+  const seconds = performance.now() / 1000;
+  const paneHeight = 22;
+  const dripLength = 6;
+  ctx.fillStyle = "rgba(255, 236, 200, 0.55)";
+  panes.forEach((pane, index) => {
+    pane.drips.forEach((drip) => {
+      const progress = (seconds * drip.speed + drip.phase) % 1;
+      const dripTop = windowTop + progress * (paneHeight - dripLength);
+      ctx.fillRect(
+        Math.floor(leftX + 14 + index * 28 + drip.fromLeft),
+        dripTop,
+        1,
+        dripLength,
+      );
+    });
   });
 }
 
@@ -1192,12 +1291,143 @@ function drawTrain() {
   ctx.restore();
 }
 
+// Weather particles
+
+// Three depth bands, like the parallax layers: far particles are small, faint
+// and slow, near ones are big, bright and fast. Only the nearest band is
+// drawn in front of the train.
+const weatherBandDepths = [0.2, 0.55, 1];
+const particleCounts = { clear: 0, rain: 420, snow: 270 };
+
+// Respawns happen inside the frame loop, so they use their own seeded
+// generator instead of Math.random. The scenery never reads from it.
+const weatherRandom = mulberry32(journey.seed + 7000);
+
+// The camera rides with the train, so anything hanging in the air drifts
+// left at the speed of the world at its depth. That drift tilts the rain.
+function getSidewaysSpeed(depth) {
+  return -(20 + depth * 100) * currentSpeedFactor;
+}
+
+function getFallSpeed(depth) {
+  if (activeWeather === "rain") return 380 + depth * 420 + weatherRandom() * 80;
+  return (16 + depth * 34) * (0.8 + weatherRandom() * 0.4);
+}
+
+// Recycling: a particle that landed is moved back above the screen and
+// given fresh values. No new object is created, so nothing is ever thrown away.
+function respawnParticle(particle, depth, anywhereOnScreen) {
+  const groundY = getGroundY();
+  particle.x = weatherRandom() * (window.innerWidth + 300);
+  particle.y = anywhereOnScreen
+    ? weatherRandom() * window.innerHeight
+    : -10 - weatherRandom() * 60;
+  particle.velocityY = getFallSpeed(depth);
+
+  // Life is the time left until it lands somewhere on the ground strip,
+  // which spreads the landings out instead of everything hitting one line.
+  const landingY = groundY + weatherRandom() * (window.innerHeight - groundY);
+  particle.life = Math.max(0.05, (landingY - particle.y) / particle.velocityY);
+
+  particle.radius = (0.7 + depth * 1.6) * (0.7 + weatherRandom() * 0.6);
+  particle.wobbleSpeed = 0.8 + weatherRandom() * 1.2;
+  particle.wobbleSize = 6 + weatherRandom() * 14;
+  particle.wobblePhase = weatherRandom() * Math.PI * 2;
+}
+
+// The pool: every particle is created once, here, and lives for the
+// whole journey.
+function createWeatherBands() {
+  const countPerBand = particleCounts[activeWeather] / weatherBandDepths.length;
+  return weatherBandDepths.map((depth) => {
+    const particles = [];
+    for (let index = 0; index < countPerBand; index++) {
+      const particle = {};
+      respawnParticle(particle, depth, true);
+      particles.push(particle);
+    }
+    return { depth, particles, inFront: depth === 1 };
+  });
+}
+
+const weatherBands = createWeatherBands();
+
+function updateWeather(dt) {
+  for (const band of weatherBands) {
+    const sidewaysSpeed = getSidewaysSpeed(band.depth);
+    for (const particle of band.particles) {
+      particle.x += sidewaysSpeed * dt;
+      particle.y += particle.velocityY * dt;
+      particle.life -= dt;
+      if (particle.life <= 0 || particle.x < -60) {
+        respawnParticle(particle, band.depth, false);
+      }
+    }
+  }
+}
+
+// One path and one stroke per band. Hundreds of separate strokes would mean
+// hundreds of trips to the renderer every frame; this is three.
+function drawRain(band) {
+  const streakTime = 0.03;
+  const sidewaysSpeed = getSidewaysSpeed(band.depth);
+  ctx.strokeStyle = `rgba(159, 176, 216, ${0.12 + band.depth * 0.22})`;
+  ctx.lineWidth = band.depth === 1 ? 1.4 : 1;
+  ctx.beginPath();
+  for (const particle of band.particles) {
+    ctx.moveTo(particle.x, particle.y);
+    ctx.lineTo(
+      particle.x - sidewaysSpeed * streakTime,
+      particle.y - particle.velocityY * streakTime,
+    );
+  }
+  ctx.stroke();
+}
+
+// The wobble is an offset from the clock, added at draw time only, so it
+// sways the flake without pushing it off course.
+function drawSnow(band) {
+  const seconds = performance.now() / 1000;
+  ctx.fillStyle = `rgba(232, 236, 244, ${0.35 + band.depth * 0.5})`;
+  ctx.beginPath();
+  for (const particle of band.particles) {
+    const swayX =
+      Math.sin(seconds * particle.wobbleSpeed + particle.wobblePhase) *
+      particle.wobbleSize *
+      band.depth;
+    const flakeX = particle.x + swayX;
+    // moveTo first, or the path joins each flake to the last with a line.
+    ctx.moveTo(flakeX + particle.radius, particle.y);
+    ctx.arc(flakeX, particle.y, particle.radius, 0, Math.PI * 2);
+  }
+  ctx.fill();
+}
+
+function drawWeather(inFront) {
+  for (const band of weatherBands) {
+    if (band.inFront !== inFront) continue;
+    if (activeWeather === "rain") drawRain(band);
+    if (activeWeather === "snow") drawSnow(band);
+  }
+}
+
+// Rain clouds hide most of the moonlight. The shade goes over the world but
+// under the train, so the windows feel brighter by contrast.
+function drawRainShade() {
+  if (activeWeather !== "rain") return;
+  ctx.fillStyle = "rgba(4, 5, 12, 0.32)";
+  ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
+}
+
 function draw() {
   drawSky();
   drawMoon();
   if (activeBiome !== "fields") drawGround();
   drawLayers();
+  drawRainShade();
+  drawWeather(false);
   drawTrain();
+  drawWeather(true);
 }
 
 resize();
