@@ -2,15 +2,18 @@
 
 A night train you watch from outside.
 
-A train crosses the frame while a generated world scrolls past behind it: city lights, pine forest, open fields, a moonlit coast, mountains. Everything on screen is drawn by code. There are no image files in this repository, no frameworks and no build step. The world is silhouettes, gradients and glow, which is what night looks like.
+A steam train crosses the frame while a generated world scrolls past behind it: city lights, pine forest, open fields, a moonlit coast, mountains. Everything on screen is drawn by code. There are no image files in this repository, no frameworks and no build step. The world is silhouettes, gradients and glow, which is what night looks like.
 
-> Work in progress. The landscapes and the seeded journey generator are done. The train, weather and tunnels are next. See the roadmap below.
+> Work in progress. The landscapes, the train, the weather and the seeded journey generator are done. Tunnels and the journey timeline are next. See the roadmap below.
 
 ## Run it
 
 Open `index.html` in a browser. Nothing to install.
 
-To switch landscape while developing, change `activeBiome` near the bottom of `main.js` to one of `"city"`, `"forest"`, `"fields"`, `"coast"` or `"mountains"`.
+While developing:
+
+- To switch landscape, change `activeBiome` near the bottom of `main.js` to one of `"city"`, `"forest"`, `"fields"`, `"coast"` or `"mountains"`.
+- To switch weather, change `activeWeather` near the top of `main.js` from `journey.weather` to `"clear"`, `"rain"` or `"snow"`.
 
 ## What is in it
 
@@ -22,16 +25,27 @@ To switch landscape while developing, change `activeBiome` near the bottom of `m
 - **Coast:** a sea that mirrors the sky at the horizon, a broken moon reflection that shimmers, drifting waves, and a headland with a lighthouse and a sweeping beam.
 - **Mountains:** layered ranges with sharp peaks, a rim of moonlight on the slopes, rolling foothills and a few distant lights.
 
+**The train.** An old steam locomotive with a tender and one to three carriages. The wheels turn with the distance travelled, the coupling rod rides on pins that circle the hubs, the headlamp throws a beam ahead, and a red lamp marks the tail. Carriage windows glow warm or dim, with passengers in some of them. The whole train bobs slightly and its speed drifts gently, so it never feels mechanical.
+
+**Weather.** Clear, rain or snow, chosen by the journey:
+
+- **Rain:** angled streaks, a darker world, a wider glow around the windows and drops sliding down the carriage glass.
+- **Snow:** drifting, swaying flakes, a brighter edge where snow lies on the ground, and snow caps on the mountain peaks.
+
 **Seeded journeys.** A journey is a number. The same number always produces the same biome sequence, weather, time and train, which is what will make journeys shareable by link.
 
 ## How it works
 
-- **One canvas, one file of scene code.** `main.js` draws everything: sky, moon, ground and the active landscape.
+- **One canvas, one file of scene code.** `main.js` draws everything: sky, moon, ground, the active landscape, the weather and the train.
 - **Delta-time loop.** Movement is multiplied by the time since the last frame, so the scene runs at the same speed on a 60 Hz and a 144 Hz screen.
 - **Layer system.** A layer is an object with a scroll speed, a wrap width and a `draw` function. Each landscape is a function that returns a list of layers.
 - **Seamless wrapping.** Every layer repeats exactly at its wrap width: whole sine cycles, whole fence posts, noise that wraps around. Positions are rounded to whole pixels so no seam shows.
-- **Generate once, draw every frame.** All random choices are made when a landscape is created and stored. Drawing never rolls dice, so nothing flickers and a seed can always be reproduced. Only the clock is used while drawing, for shimmer and the lighthouse beam.
-- **Seeded random numbers.** A small generator (mulberry32) replaces `Math.random`, because `Math.random` cannot be restarted from a known point.
+- **Generate once, draw every frame.** All scenery choices are made when a landscape is created and stored. Drawing the scenery never rolls dice, so nothing flickers and a seed can always be reproduced. Only the clock is used while drawing, for shimmer, the lighthouse beam, the train's bob and the rain drips.
+- **Seeded random numbers.** A small generator (mulberry32) replaces `Math.random`, because `Math.random` cannot be restarted from a known point. Weather particles get their own seeded generator, so respawning raindrops never disturbs the scenery's sequence.
+- **Particle pool.** Every raindrop and snowflake is created once. When one lands it is moved back above the screen and reused, so no memory is allocated while the scene runs and frame times stay even.
+- **Weather depth.** Particles sit in three depth bands, like the layers. They drift sideways at the speed of the world at their depth, because the camera rides with the train, and that drift is what slants the rain. Only the nearest band is drawn in front of the train.
+- **Batched drawing.** Each weather band is one path and one draw call, which keeps hundreds of particles at 60 fps.
+- **Glow.** Windows and lamps glow through canvas shadow blur in a warm colour, not through images.
 
 ## Roadmap
 
@@ -39,8 +53,8 @@ To switch landscape while developing, change `activeBiome` near the bottom of `m
 - [x] Sky, moon and parallax layers
 - [x] Seeded randomness and journey generator
 - [x] Five landscapes
-- [ ] The train
-- [ ] Weather: rain and snow
+- [x] The train
+- [x] Weather: rain and snow
 - [ ] Tunnels between landscapes and the journey timeline
 - [ ] The "new journey" button, reduced-motion fallback and deployment
 
@@ -48,7 +62,7 @@ Later, if it gets that far: stations, fog, synthesised rain and rail sound, and 
 
 ## Palette
 
-Dusk sky `#2b2d55` to `#151a38`, far silhouettes `#0c0e1c`, near silhouettes `#05060d`, lit windows `#ffc76e`, moon `#f2ead8`. Far layers sit close to the sky tone and nearer ones get darker, so depth reads as atmosphere.
+Dusk sky `#2b2d55` to `#151a38`, far silhouettes `#0c0e1c`, near silhouettes `#05060d`, lit windows `#ffc76e`, moon `#f2ead8`, rain `#9fb0d8`, snow `#e8ecf4`. Far layers sit close to the sky tone and nearer ones get darker, so depth reads as atmosphere.
 
 ## License
 
