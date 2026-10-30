@@ -80,7 +80,7 @@ function createPoleLayer(seed) {
       const poleWidth = Math.max(1.5, 0.24 * scale);
       const armTops = [];
 
-      ctx.fillStyle = "#0b0d1a";
+      const poles = new Path2D();
       forEachSlot(z, spacing, spacing, (index, x) => {
         const random = seededRandom(seed, index);
         const lean = (random() - 0.5) * 0.25 * scale;
@@ -88,20 +88,20 @@ function createPoleLayer(seed) {
         const topX = bottomX + lean;
         const topY = baseY - poleHeight * scale;
 
-        ctx.beginPath();
-        ctx.moveTo(bottomX - poleWidth / 2, baseY);
-        ctx.lineTo(topX - poleWidth / 2, topY);
-        ctx.lineTo(topX + poleWidth / 2, topY);
-        ctx.lineTo(bottomX + poleWidth / 2, baseY);
-        ctx.fill();
+        poles.moveTo(bottomX - poleWidth / 2, baseY);
+        poles.lineTo(topX - poleWidth / 2, topY);
+        poles.lineTo(topX + poleWidth / 2, topY);
+        poles.lineTo(bottomX + poleWidth / 2, baseY);
+        poles.closePath();
 
         const armY = topY + 0.5 * scale;
         const armThickness = Math.max(1, 0.12 * scale);
-        ctx.fillRect(topX - 0.9 * scale, armY, 1.8 * scale, armThickness);
-        ctx.fillRect(topX - 0.6 * scale, armY + 0.7 * scale, 1.2 * scale, armThickness);
+        poles.rect(topX - 0.9 * scale, armY, 1.8 * scale, armThickness);
+        poles.rect(topX - 0.6 * scale, armY + 0.7 * scale, 1.2 * scale, armThickness);
 
         armTops.push({ x: topX, y: armY });
       });
+      fillWithMoonlitEdge(poles, "#0b0d1a", 0.35);
 
       ctx.strokeStyle = "rgba(22, 26, 48, 0.9)";
       ctx.lineWidth = 0.8;

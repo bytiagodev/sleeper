@@ -31,13 +31,14 @@ function easeInOut(progress) {
   return (1 - Math.cos(progress * Math.PI)) / 2;
 }
 
+function mix(from, to, amount) {
+  return from + (to - from) * amount;
+}
+
 // A random height at every whole number, with a smooth blend in between.
 function smoothNoise(x, seed) {
   const left = Math.floor(x);
-  const eased = easeInOut(x - left);
-  const leftHeight = hash(left, seed);
-  const rightHeight = hash(left + 1, seed);
-  return leftHeight + (rightHeight - leftHeight) * eased;
+  return mix(hash(left, seed), hash(left + 1, seed), easeInOut(x - left));
 }
 
 // Big slow hills with smaller and smaller bumps on top, like a real ridge.
@@ -50,6 +51,41 @@ function layeredNoise(x, seed, layers = 4) {
     total += smoothNoise(x, seed + layer) * strength;
     maxTotal += strength;
     x *= 2;
+    strength /= 2;
+  }
+  return total / maxTotal;
+}
+
+// The same idea on a grid, for textures. If wrap is set, the grid repeats
+// every `wrap` cells, so the texture's edges match and it tiles cleanly.
+function smoothNoise2D(x, y, seed, wrap = 0) {
+  let left = Math.floor(x);
+  let top = Math.floor(y);
+  const across = easeInOut(x - left);
+  const down = easeInOut(y - top);
+  let right = left + 1;
+  let bottom = top + 1;
+  if (wrap > 0) {
+    left %= wrap;
+    right %= wrap;
+    top %= wrap;
+    bottom %= wrap;
+  }
+  const topEdge = mix(hash(left, top, seed), hash(right, top, seed), across);
+  const bottomEdge = mix(hash(left, bottom, seed), hash(right, bottom, seed), across);
+  return mix(topEdge, bottomEdge, down);
+}
+
+function layeredNoise2D(x, y, seed, layers = 4, wrap = 0) {
+  let total = 0;
+  let maxTotal = 0;
+  let strength = 1;
+  for (let layer = 0; layer < layers; layer++) {
+    total += smoothNoise2D(x, y, seed + layer, wrap) * strength;
+    maxTotal += strength;
+    x *= 2;
+    y *= 2;
+    wrap *= 2;
     strength /= 2;
   }
   return total / maxTotal;

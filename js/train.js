@@ -116,10 +116,8 @@ function drawLocomotiveLights(leftX, railY) {
   const lampY = railY - 54;
 
   ctx.fillStyle = lampColor;
-  ctx.shadowColor = "rgba(255, 199, 110, 0.7)";
-  ctx.shadowBlur = 16;
   ctx.fillRect(leftX + 11, cabTop + 16, 28, 20);
-  ctx.shadowBlur = 0;
+  drawGlow(leftX + 25, cabTop + 26, 45, warmLight, 0.5);
 
   const beamEndX = lampX + 170;
   const beamEndY = lampY + 12;
@@ -135,12 +133,10 @@ function drawLocomotiveLights(leftX, railY) {
   ctx.fill();
 
   ctx.fillStyle = lampColor;
-  ctx.shadowColor = "rgba(255, 199, 110, 0.8)";
-  ctx.shadowBlur = 8;
   ctx.beginPath();
   ctx.arc(lampX, lampY, 3.5, 0, Math.PI * 2);
   ctx.fill();
-  ctx.shadowBlur = 0;
+  drawGlow(lampX, lampY, 40, "255, 225, 170", 0.9);
 }
 
 function drawTender(leftX, railY, distance) {
@@ -237,24 +233,19 @@ function drawCarriage(leftX, railY, panes, distance) {
 // Kept separate from the body so a tunnel can draw only the lit windows.
 function drawCarriageGlass(leftX, railY, panes) {
   const windowTop = railY - 62;
-  // Wet air spreads light further, so the glow doubles in the rain.
-  let glowSize = 1;
-  if (activeWeather === "rain") glowSize = 2;
+  // Wet air spreads light further, so the glow is bigger in the rain.
+  let glowRadius = 22;
+  if (activeWeather === "rain") glowRadius = 34;
 
   panes.forEach((pane, i) => {
     const windowX = leftX + 14 + i * 28;
     if (pane.dim) {
       ctx.fillStyle = dimLampColor;
-      ctx.shadowColor = "rgba(201, 143, 74, 0.4)";
-      ctx.shadowBlur = 4 * glowSize;
     } else {
       ctx.fillStyle = lampColor;
-      ctx.shadowColor = "rgba(255, 199, 110, 0.6)";
-      ctx.shadowBlur = 8 * glowSize;
     }
     ctx.fillRect(windowX, windowTop, 18, 22);
   });
-  ctx.shadowBlur = 0;
 
   ctx.fillStyle = bodyColor;
   panes.forEach((pane, i) => {
@@ -269,6 +260,12 @@ function drawCarriageGlass(leftX, railY, panes) {
   });
 
   if (activeWeather === "rain") drawWindowDrips(leftX, windowTop, panes);
+
+  panes.forEach((pane, i) => {
+    let strength = 0.22;
+    if (pane.dim) strength = 0.1;
+    drawGlow(leftX + 23 + i * 28, windowTop + 11, glowRadius, warmLight, strength);
+  });
 }
 
 function drawWindowDrips(leftX, windowTop, panes) {
@@ -291,12 +288,10 @@ function drawTailLamp(lampX, railY) {
   ctx.fillRect(lampX, railY - 29, 7, 2);
 
   ctx.fillStyle = "#e84a4a";
-  ctx.shadowColor = "rgba(232, 74, 74, 0.8)";
-  ctx.shadowBlur = 10;
   ctx.beginPath();
   ctx.arc(lampX, railY - 28, 3, 0, Math.PI * 2);
   ctx.fill();
-  ctx.shadowBlur = 0;
+  drawGlow(lampX, railY - 28, 22, "240, 70, 60", 0.7);
 }
 
 function getTrainLayout() {

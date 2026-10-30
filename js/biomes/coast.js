@@ -74,11 +74,7 @@ function drawLighthouse(centerX, baseY, scale) {
   const topY = baseY - m(26);
   const lampY = topY - m(2.5);
 
-  const glow = ctx.createRadialGradient(centerX, lampY, 1, centerX, lampY, 16);
-  glow.addColorStop(0, "rgba(255, 199, 110, 0.25)");
-  glow.addColorStop(1, "rgba(255, 199, 110, 0)");
-  ctx.fillStyle = glow;
-  ctx.fillRect(centerX - 16, lampY - 16, 32, 32);
+  drawGlow(centerX, lampY, 22, warmLight, 0.6);
 
   // The beam swings round; seen from the side it grows and shrinks.
   const beamLength = Math.cos((performance.now() / 1000) * 0.8) * 300;

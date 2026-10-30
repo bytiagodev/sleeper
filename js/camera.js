@@ -49,6 +49,11 @@ function groundYAt(z) {
   return camera.horizonY + camera.height * scaleAt(z);
 }
 
+// The opposite of groundYAt: how far away the ground is at a screen row.
+function zAtGroundY(screenY) {
+  return (camera.height * camera.focal) / (screenY - camera.horizonY);
+}
+
 function screenXAt(worldX, z) {
   return window.innerWidth / 2 + (worldX - travelled) * scaleAt(z);
 }

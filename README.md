@@ -6,7 +6,7 @@ A night train you watch from outside.
 
 A steam train crosses the frame while a generated world scrolls past behind it: city lights, pine forest, open fields, a moonlit coast, mountains. Everything on screen is drawn by code. The scene uses no image files, no frameworks and no build step. The one image in the repository, `og.png`, is the preview shown when the link is shared, and it is a screenshot of the scene itself.
 
-> Sleeper is being rebuilt. `concept/sleeper-concept.png` is the target: textured ground, a real track, a detailed locomotive with steam, stations, tunnel portals, fog and sound. It is drawn by `concept/concept.html`, in the same Canvas 2D code the scene uses. See the roadmap below.
+> Sleeper is being rebuilt. `concept/sleeper-concept.png` is the target: textured ground, a real track, a detailed locomotive with steam, stations, tunnel portals, fog and sound. See the roadmap below.
 
 ## Run it
 
@@ -53,7 +53,8 @@ While developing, in `main.js`:
 | `js/random.js` | Seeded random numbers, a hash and one-dimensional noise |
 | `js/camera.js` | Turns metres into pixels. The only place that does |
 | `js/journey.js` | Rolls a journey from its number, and names it |
-| `js/sky.js` | Sky, moon and the ground plane |
+| `js/textures.js` | Painting textures once, glows, the textured ground, the moonlit-edge trick, vignette and grain |
+| `js/sky.js` | Sky, stars, moon, clouds and the ground plane |
 | `js/track.js` | Ballast, sleepers, rails, telegraph poles and the grass in front |
 | `js/biomes/*.js` | The five landscapes, and `builders.js`, which assembles them |
 | `js/train.js` | The train |
@@ -67,6 +68,10 @@ While developing, in `main.js`:
 - **Scenery from the slot number, not a list.** The world is cut into slots along the line, and the slot's number is the seed for what stands there: the tree in slot 812 is always the same tree. Any stretch of the line can be drawn without generating what came before it, so the scenery never repeats and needs no wrapping. Ridges and skylines use smooth noise along the line, measured in metres, so a mountain keeps its shape as it drifts by.
 - **Seeded random numbers.** `Math.random` can't be replayed, so the scene uses `hash` instead: it takes the sine of a large number and keeps the decimals, which gives a random-looking value between 0 and 1 that is always the same for the same inputs. `seededRandom(seed)` wraps it into a sequence that can be replayed from the start.
 - **Particle pool.** Every raindrop and snowflake is created once. When one lands it is moved back above the screen and reused, so no memory is allocated while the scene runs.
+- **Textures are painted once.** Sky, moon, clouds, the ground texture, glows and the grain are painted pixel by pixel when the page loads or the window changes size, then reused every frame. The sky and stars are a single image; only a few bright stars are drawn live so they can twinkle.
+- **Textured ground in perspective.** The ground is drawn in thin strips. Each strip is a slice of one repeating texture, stretched to the scale of its distance and shifted by how far the train has gone, so near ground rushes past and far ground creeps.
+- **Glows add light.** Every lamp and lit window stamps a soft glow painted once per colour, drawn with the "lighter" blend so the glow brightens what is under it.
+- **Moonlit edges.** Trees, buildings and poles are filled once in moonlight, shifted a pixel up and to the right, then again in their own colour, which leaves a thin lit edge on the moon's side.
 - **Batched drawing.** Each row of trees, each set of sleepers and each weather band is one path and one draw call.
 - **Journey timeline.** A small state object tracks whether the train is in the open or in a tunnel. The new landscape is built halfway through the tunnel, while the screen is dark, so the swap is never seen.
 - **Journey names.** Each journey's name is built from its departure time, its landscapes and its weather. The name has its own seeded random stream, so naming a journey never changes the journey.
@@ -78,7 +83,7 @@ The first version is in the git history (canvas, layers, seeded journeys, five l
 
 - [x] **Phase 0.** Split the single script into files
 - [x] **Phase 1.** A camera in metres: correct scale and speed for everything, a real track with sleepers and two rails, telegraph poles, grass in front of the line
-- [ ] **Phase 2.** Textures and light: noise textures made once at startup, a glow pass, moonlight from one side, stars, a textured moon with a halo, clouds
+- [x] **Phase 2.** Textures and light: noise textures made once at startup, a glow pass, moonlight from one side, stars, a textured moon with a halo, clouds
 - [ ] **Phase 3.** The train rebuilt: real proportions, spoked wheels with rods that move like real ones, liveries, firebox glow, window light on the ground, steam and smoke
 - [ ] **Phase 4.** The five landscapes rebuilt on the new system, with fog as a fourth weather and haze with distance
 - [ ] **Phase 5.** Braking and stations, and real tunnels with portals the train disappears into

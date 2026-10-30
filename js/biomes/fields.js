@@ -40,6 +40,7 @@ function drawFarm(left, baseY, scale, hasLitWindow) {
   if (hasLitWindow) {
     ctx.fillStyle = "#ffc76e";
     ctx.fillRect(left + m(1.5), baseY - m(4.3), m(1.3), m(1.3));
+    drawGlow(left + m(2.15), baseY - m(3.65), m(4), warmLight, 0.5);
   }
 
   const siloLeft = left + m(15);

@@ -29,6 +29,7 @@ function startJourney(seed) {
   carriageWindowSets = createCarriageWindowSets();
   weatherRandom = seededRandom(journey.seed + 7000);
   weatherBands = createWeatherBands();
+  buildSky();
   showBiome(0);
 }
 

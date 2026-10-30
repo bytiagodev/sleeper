@@ -32,6 +32,8 @@ function resize() {
   canvas.style.height = window.innerHeight + "px";
   ctx.scale(pixelRatio, pixelRatio);
   updateCamera();
+  createFinish();
+  if (journey) buildSky();
 }
 
 let lastTime = 0;
@@ -51,7 +53,6 @@ function loop(currentTime) {
 
 function draw() {
   drawSky();
-  drawMoon();
   drawGround();
   for (const layer of layers) {
     if (layer.z >= camera.trackZ) layer.draw();
@@ -64,6 +65,7 @@ function draw() {
   }
   drawWeather(true);
   drawTunnel();
+  drawFinish();
 }
 
 const journeyLabel = document.getElementById("journey-label");
@@ -92,6 +94,7 @@ window.addEventListener("resize", () => {
   if (prefersReducedMotion) draw();
 });
 
+createGroundPattern();
 resize();
 startJourney(randomSeed());
 showJourneyLabel();

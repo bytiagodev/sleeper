@@ -85,10 +85,13 @@ function createMountainLayer({
           if (random() > lightChance) return;
           const lightX = x + random() * 40;
           const lightHeight = heightAt(lightX) * (0.1 + random() * 0.4);
-          ctx.globalAlpha = 0.4 + random() * 0.5;
-          ctx.fillRect(screenXAt(lightX, z), baseY - lightHeight * scale, 2, 2);
+          const brightness = 0.4 + random() * 0.5;
+          const lightY = baseY - lightHeight * scale;
+          ctx.globalAlpha = brightness;
+          ctx.fillRect(screenXAt(lightX, z), lightY, 2, 2);
+          ctx.globalAlpha = 1;
+          drawGlow(screenXAt(lightX, z) + 1, lightY + 1, 7, warmLight, brightness * 0.5);
         });
-        ctx.globalAlpha = 1;
       }
     },
   };

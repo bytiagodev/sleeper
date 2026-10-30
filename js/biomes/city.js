@@ -1,4 +1,4 @@
-function createCityLayer({ seed, z, plotWidth, minHeight, heightRange, color, windowColor, litChance }) {
+function createCityLayer({ seed, z, plotWidth, minHeight, heightRange, color, windowColor, litChance, edgeAlpha, windowGlow }) {
   return {
     z,
     draw() {
@@ -9,7 +9,7 @@ function createCityLayer({ seed, z, plotWidth, minHeight, heightRange, color, wi
       const litWindows = [];
       const dimWindows = [];
 
-      ctx.fillStyle = color;
+      const buildings = new Path2D();
       forEachSlot(z, plotWidth, plotWidth, (index, x) => {
         const random = seededRandom(seed, index);
         const buildingWidth = plotWidth * (0.72 + random() * 0.28);
@@ -21,12 +21,12 @@ function createCityLayer({ seed, z, plotWidth, minHeight, heightRange, color, wi
         const left = screenXAt(x, z);
         const right = screenXAt(x + buildingWidth, z);
         const roofY = baseY - buildingHeight * scale;
-        ctx.fillRect(left, roofY, right - left, baseY - roofY);
+        buildings.rect(left, roofY, right - left, baseY - roofY);
 
         if (random() < 0.3) {
           const antennaHeight = (3 + random() * 8) * scale;
           const antennaWidth = Math.max(1, 0.3 * scale);
-          ctx.fillRect((left + right) / 2, roofY - antennaHeight, antennaWidth, antennaHeight);
+          buildings.rect((left + right) / 2, roofY - antennaHeight, antennaWidth, antennaHeight);
         }
 
         const columns = Math.floor((buildingWidth - 2) / 3.2);
@@ -45,9 +45,16 @@ function createCityLayer({ seed, z, plotWidth, minHeight, heightRange, color, wi
         }
       });
 
+      fillWithMoonlitEdge(buildings, color, edgeAlpha);
+
       ctx.fillStyle = windowColor;
       for (const pane of litWindows) {
         ctx.fillRect(pane.x, pane.y, windowWidth, windowHeight);
+      }
+      if (windowGlow > 0) {
+        for (const pane of litWindows) {
+          drawGlow(pane.x + windowWidth / 2, pane.y + windowHeight / 2, windowWidth * 3, warmLight, windowGlow);
+        }
       }
       ctx.fillStyle = "#a8783f";
       for (const pane of dimWindows) {
@@ -67,6 +74,8 @@ function createCityLayers(seed) {
     color: "#161a35",
     windowColor: "#d9a35e",
     litChance: 0.08,
+    edgeAlpha: 0.1,
+    windowGlow: 0,
   });
   const nearRow = createCityLayer({
     seed: seed + 2,
@@ -77,6 +86,8 @@ function createCityLayers(seed) {
     color: "#0c0e1c",
     windowColor: "#ffc76e",
     litChance: 0.22,
+    edgeAlpha: 0.25,
+    windowGlow: 0.35,
   });
   return [farRow, nearRow];
 }
