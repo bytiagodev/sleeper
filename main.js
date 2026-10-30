@@ -35,7 +35,7 @@ function generateJourney(seed) {
   const minute = Math.floor(random() * 60);
 
   const train = {
-    carriages: 4 + Math.floor(random() * 5),
+    carriages: 1 + Math.floor(random() * 3),
     livery: Math.floor(random() * 3),
   };
 
@@ -88,8 +88,17 @@ function loop(currentTime) {
   requestAnimationFrame(loop);
 }
 
+const trainSpeed = 60;
+let travelled = 0;
+
+function getSpeedFactor(seconds) {
+  return 1 + Math.sin(seconds * 0.15) * 0.12 + Math.sin(seconds * 0.37) * 0.03;
+}
+
 function update(dt) {
-  updateLayers(dt);
+  const speedFactor = getSpeedFactor(performance.now() / 1000);
+  updateLayers(dt * speedFactor);
+  travelled += trainSpeed * speedFactor * dt;
 }
 
 function drawSky() {
@@ -868,11 +877,327 @@ function drawLayers() {
   }
 }
 
+function getRailY() {
+  return Math.floor(window.innerHeight * 0.78);
+}
+
+function drawWheel(centerX, centerY, radius, distance) {
+  const angle = distance / radius;
+  const spokeLength = radius * 0.85;
+
+  ctx.fillStyle = "#141935";
+  ctx.strokeStyle = "#3d4577";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let spoke = 0; spoke < 3; spoke++) {
+    const spokeAngle = angle + (spoke * Math.PI) / 3;
+    const reachX = Math.cos(spokeAngle) * spokeLength;
+    const reachY = Math.sin(spokeAngle) * spokeLength;
+    ctx.moveTo(centerX - reachX, centerY - reachY);
+    ctx.lineTo(centerX + reachX, centerY + reachY);
+  }
+  ctx.stroke();
+
+  ctx.fillStyle = "#3d4577";
+  ctx.beginPath();
+  ctx.arc(centerX, centerY, 2, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawLocomotive(leftX, railY, distance) {
+  const bodyColor = "#141935";
+  const edgeColor = "#3d4577";
+
+  const frameTop = railY - 26;
+  const cabWidth = 50;
+  const cabTop = railY - 92;
+  const boilerLeft = leftX + 46;
+  const boilerRight = leftX + 178;
+  const boilerTop = railY - 70;
+  const boilerBottom = railY - 28;
+
+  ctx.fillStyle = bodyColor;
+
+  // Frame and cab
+  ctx.fillRect(leftX, frameTop, 200, 7);
+  ctx.fillRect(leftX, cabTop + 5, cabWidth, frameTop - cabTop - 5);
+  ctx.fillRect(leftX - 5, cabTop, cabWidth + 10, 6);
+
+  // Boiler with a rounded smokebox at the front
+  ctx.beginPath();
+  ctx.roundRect(
+    boilerLeft,
+    boilerTop,
+    boilerRight - boilerLeft,
+    boilerBottom - boilerTop,
+    [3, 14, 14, 3],
+  );
+  ctx.fill();
+
+  // Chimney with a flared top, then two domes
+  const chimneyX = leftX + 156;
+  ctx.beginPath();
+  ctx.moveTo(chimneyX - 5, boilerTop + 2);
+  ctx.lineTo(chimneyX - 5, boilerTop - 16);
+  ctx.lineTo(chimneyX - 10, boilerTop - 26);
+  ctx.lineTo(chimneyX + 10, boilerTop - 26);
+  ctx.lineTo(chimneyX + 5, boilerTop - 16);
+  ctx.lineTo(chimneyX + 5, boilerTop + 2);
+  ctx.closePath();
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(leftX + 92, boilerTop + 1, 11, Math.PI, 0);
+  ctx.arc(leftX + 124, boilerTop + 1, 7, Math.PI, 0);
+  ctx.fill();
+
+  // Cylinder block and the cowcatcher
+  ctx.fillRect(leftX + 150, railY - 36, 26, 14);
+  ctx.beginPath();
+  ctx.moveTo(leftX + 176, railY - 26);
+  ctx.lineTo(leftX + 202, railY - 3);
+  ctx.lineTo(leftX + 176, railY - 3);
+  ctx.closePath();
+  ctx.fill();
+
+  // Lit edges along the tops
+  ctx.fillStyle = edgeColor;
+  ctx.fillRect(leftX - 3, cabTop, cabWidth + 6, 1.5);
+  ctx.fillRect(boilerLeft + 6, boilerTop, boilerRight - boilerLeft - 26, 1.5);
+  ctx.fillRect(chimneyX - 9, boilerTop - 26, 18, 1.5);
+
+  // Wheels and the iron bar riding on pins that circle the hubs
+  const driverY = railY - 17;
+  const driverXs = [leftX + 70, leftX + 106, leftX + 142];
+  const pinRadius = 8;
+  const pinAngle = distance / 17;
+  const pinOffsetX = Math.cos(pinAngle) * pinRadius;
+  const pinOffsetY = Math.sin(pinAngle) * pinRadius;
+
+  driverXs.forEach((wheelX) => drawWheel(wheelX, driverY, 17, distance));
+
+  ctx.strokeStyle = edgeColor;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(driverXs[0] + pinOffsetX, driverY + pinOffsetY);
+  ctx.lineTo(driverXs[2] + pinOffsetX, driverY + pinOffsetY);
+  ctx.lineTo(leftX + 164, driverY - 3);
+  ctx.stroke();
+
+  drawWheel(leftX + 172, railY - 8, 7, distance);
+
+  // Cab window: the blurred shadow is the glow
+  const windowX = leftX + 11;
+  const windowY = cabTop + 16;
+  ctx.fillStyle = "#ffc76e";
+  ctx.shadowColor = "rgba(255, 199, 110, 0.7)";
+  ctx.shadowBlur = 16;
+  ctx.fillRect(windowX, windowY, 28, 20);
+  ctx.shadowBlur = 0;
+
+  // Headlamp on the smokebox, with a beam fanning forward and down
+  const lampX = boilerRight - 2;
+  const lampY = boilerTop + 16;
+  const beamTipX = lampX + 170;
+  const beamTipY = lampY + 12;
+  const beam = ctx.createLinearGradient(lampX, 0, beamTipX, 0);
+  beam.addColorStop(0, "rgba(255, 199, 110, 0.35)");
+  beam.addColorStop(1, "rgba(255, 199, 110, 0)");
+  ctx.fillStyle = beam;
+  ctx.beginPath();
+  ctx.moveTo(lampX, lampY - 2);
+  ctx.lineTo(beamTipX, beamTipY - 22);
+  ctx.lineTo(beamTipX, beamTipY + 22);
+  ctx.lineTo(lampX, lampY + 2);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = "#ffc76e";
+  ctx.shadowColor = "rgba(255, 199, 110, 0.8)";
+  ctx.shadowBlur = 8;
+  ctx.beginPath();
+  ctx.arc(lampX, lampY, 3.5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+}
+
+function drawTender(leftX, railY, distance) {
+  const bodyColor = "#141935";
+  const edgeColor = "#3d4577";
+  const tenderWidth = 78;
+  const tenderTop = railY - 62;
+  const tenderBottom = railY - 20;
+
+  ctx.fillStyle = bodyColor;
+  ctx.beginPath();
+  ctx.roundRect(leftX, tenderTop, tenderWidth, tenderBottom - tenderTop, 3);
+  ctx.fill();
+  ctx.fillRect(leftX, railY - 26, tenderWidth + 10, 6);
+  ctx.fillRect(leftX + tenderWidth, railY - 24, 10, 4);
+
+  // Heaped coal above the rim
+  ctx.beginPath();
+  ctx.moveTo(leftX + 6, tenderTop + 1);
+  ctx.lineTo(leftX + 16, tenderTop - 9);
+  ctx.lineTo(leftX + 30, tenderTop - 13);
+  ctx.lineTo(leftX + 46, tenderTop - 10);
+  ctx.lineTo(leftX + 62, tenderTop - 14);
+  ctx.lineTo(leftX + 72, tenderTop - 6);
+  ctx.lineTo(leftX + 72, tenderTop + 1);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = edgeColor;
+  ctx.fillRect(leftX + 3, tenderTop, tenderWidth - 6, 1.5);
+
+  ctx.strokeStyle = edgeColor;
+  ctx.lineWidth = 1.5;
+  [11, 30, 50, 69].forEach((wheelOffset) => {
+    drawWheel(leftX + wheelOffset, railY - 9, 9, distance);
+  });
+}
+
+function createCarriageWindows(random) {
+  const panes = [];
+  for (let index = 0; index < 7; index++) {
+    panes.push({
+      dim: random() < 0.25,
+      passenger: random() < 0.4,
+      passengerX: 5 + random() * 8,
+    });
+  }
+  return panes;
+}
+
+const journey = generateJourney(42);
+const carriageWindowSets = [];
+for (let index = 0; index < journey.train.carriages; index++) {
+  carriageWindowSets.push(
+    createCarriageWindows(mulberry32(journey.seed * 1000 + index)),
+  );
+}
+
+const carriageWidth = 210;
+
+function drawCarriage(leftX, railY, panes, distance) {
+  const bodyColor = "#141935";
+  const edgeColor = "#3d4577";
+  const bodyTop = railY - 78;
+  const bodyBottom = railY - 20;
+
+  // Arched roof and body as one shape
+  ctx.fillStyle = bodyColor;
+  ctx.beginPath();
+  ctx.moveTo(leftX, bodyTop + 8);
+  ctx.quadraticCurveTo(
+    leftX + carriageWidth / 2,
+    bodyTop - 6,
+    leftX + carriageWidth,
+    bodyTop + 8,
+  );
+  ctx.lineTo(leftX + carriageWidth, bodyBottom);
+  ctx.lineTo(leftX, bodyBottom);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillRect(leftX, railY - 26, carriageWidth + 12, 6);
+  ctx.fillRect(leftX + carriageWidth, railY - 24, 12, 4);
+
+  // Lit edge along the curve of the roof
+  ctx.strokeStyle = edgeColor;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(leftX, bodyTop + 8);
+  ctx.quadraticCurveTo(
+    leftX + carriageWidth / 2,
+    bodyTop - 6,
+    leftX + carriageWidth,
+    bodyTop + 8,
+  );
+  ctx.stroke();
+
+  // Windows: lit or dim, each with a soft glow
+  panes.forEach((pane, index) => {
+    ctx.fillStyle = pane.dim ? "#c98f4a" : "#ffc76e";
+    ctx.shadowColor = pane.dim
+      ? "rgba(201, 143, 74, 0.4)"
+      : "rgba(255, 199, 110, 0.6)";
+    ctx.shadowBlur = pane.dim ? 4 : 8;
+    ctx.fillRect(leftX + 14 + index * 28, bodyTop + 16, 18, 22);
+  });
+  ctx.shadowBlur = 0;
+
+  // Passengers: a dark head and shoulders against the glow
+  ctx.fillStyle = bodyColor;
+  panes.forEach((pane, index) => {
+    if (!pane.passenger) return;
+    const personX = leftX + 14 + index * 28 + pane.passengerX;
+    const windowTop = bodyTop + 16;
+    ctx.beginPath();
+    ctx.arc(personX, windowTop + 11, 3.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(personX, windowTop + 22, 6, 7, 0, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  // Two wheel pairs under the ends
+  ctx.lineWidth = 1.5;
+  [22, 40, 170, 188].forEach((wheelOffset) => {
+    drawWheel(leftX + wheelOffset, railY - 9, 9, distance);
+  });
+}
+
+function drawTailLamp(lampX, railY) {
+  ctx.fillStyle = "#3d4577";
+  ctx.fillRect(lampX, railY - 29, 7, 2);
+
+  ctx.fillStyle = "#e84a4a";
+  ctx.shadowColor = "rgba(232, 74, 74, 0.8)";
+  ctx.shadowBlur = 10;
+  ctx.beginPath();
+  ctx.arc(lampX, railY - 28, 3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+}
+
+function drawTrain() {
+  const railY = getRailY();
+  ctx.fillStyle = "#3d4577";
+  ctx.fillRect(0, railY, window.innerWidth, 2);
+
+  const seconds = performance.now() / 1000;
+  const distance = travelled;
+  const bob = Math.sin(seconds * 1.7) * 0.6 + Math.sin(seconds * 4.3) * 0.25;
+  ctx.save();
+  ctx.translate(0, bob);
+
+  const couplingGap = 12;
+  const carriageSpacing = carriageWidth + couplingGap;
+  const carriageCount = carriageWindowSets.length;
+  const trainWidth = carriageCount * carriageSpacing + 88 + 202;
+  const trainLeft = Math.floor((window.innerWidth - trainWidth) / 2);
+  carriageWindowSets.forEach((panes, index) => {
+    drawCarriage(trainLeft + index * carriageSpacing, railY, panes, distance);
+  });
+  const tenderLeft = trainLeft + carriageCount * carriageSpacing;
+  drawTender(tenderLeft, railY, distance);
+  drawLocomotive(tenderLeft + 88, railY, distance);
+  drawTailLamp(trainLeft - 6, railY);
+
+  ctx.restore();
+}
+
 function draw() {
   drawSky();
   drawMoon();
   if (activeBiome !== "fields") drawGround();
   drawLayers();
+  drawTrain();
 }
 
 resize();
