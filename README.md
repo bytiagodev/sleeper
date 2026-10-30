@@ -2,21 +2,26 @@
 
 A night train you watch from outside.
 
-A steam train crosses the frame while a generated world scrolls past behind it: city lights, pine forest, open fields, a moonlit coast, mountains. Everything on screen is drawn by code. There are no image files in this repository, no frameworks and no build step. The world is silhouettes, gradients and glow, which is what night looks like.
+**[Take a ride](https://bytiagodev.github.io/sleeper/)**
 
-> Work in progress. The landscapes, the train, the weather, tunnels and the journey timeline are done. Next is the journey label, a reduced-motion fallback and deployment. See the roadmap below.
+A steam train crosses the frame while a generated world scrolls past behind it: city lights, pine forest, open fields, a moonlit coast, mountains. Everything on screen is drawn by code. The scene uses no image files, no frameworks and no build step. The one image in the repository, `og.png`, is the preview shown when the link is shared, and it is a screenshot of the scene itself.
+
+> Sleeper is being rebuilt. `concept/sleeper-concept.png` is the target: textured ground, a real track, a detailed locomotive with steam, stations, tunnel portals, fog and sound. It is drawn by `concept/concept.html`, in the same Canvas 2D code the scene uses. See the roadmap below.
 
 ## Run it
 
-Open `index.html` in a browser. Nothing to install.
+Open `index.html` in a browser, or visit the link above. Nothing to install.
 
-Press **New journey** for a different ride.
+Press **New journey** for a different ride. Each journey has its own name in the corner, like *the 23:21 from the deep wood to the long valleys, in steady rain*.
+
+If your system asks for reduced motion, Sleeper shows a single still frame of the journey instead of the moving scene. **New journey** then shows a new still.
 
 While developing, in `main.js`:
 
-- To replay one journey, change `startJourney(randomSeed())` at the bottom to a fixed number, such as `startJourney(2)`.
-- To force a weather, change `activeWeather = journey.weather` inside `startJourney` to `"clear"`, `"rain"` or `"snow"`.
-- To reach the tunnels faster, shorten the biome time in `generateJourney` (`50 + random() * 30` seconds).
+- To replay one journey, change `startJourney(randomSeed())` at the bottom of `main.js` to a fixed number, such as `startJourney(2)`.
+- To force a weather, change `activeWeather = journey.weather` inside `startJourney` in `js/timeline.js` to `"clear"`, `"rain"` or `"snow"`.
+- To reach the tunnels faster, shorten the biome time in `generateJourney` in `js/journey.js` (`50 + random() * 30` seconds).
+- To move the camera, change `height` and `trackZ` in `js/camera.js`. Every size and speed in the scene follows from those two numbers.
 
 ## What is in it
 
@@ -41,32 +46,44 @@ While developing, in `main.js`:
 
 ## How it works
 
-- **One canvas, one file of scene code.** `main.js` draws everything: sky, moon, ground, the active landscape, the weather and the train.
-- **Delta-time loop.** Movement is multiplied by the time since the last frame, so the scene runs at the same speed on a 60 Hz and a 144 Hz screen.
-- **Layer system.** A layer is an object with a scroll speed, a wrap width and a `draw` function. Each landscape is a function that returns a list of layers.
-- **Seamless wrapping.** Every layer repeats exactly at its wrap width: whole sine cycles, whole fence posts, noise that wraps around. Positions are rounded to whole pixels so no seam shows.
-- **Generate once, draw every frame.** All scenery choices are made when a landscape is created and stored. Drawing the scenery never rolls dice, so nothing flickers and a seed can always be reproduced. Only the clock is used while drawing, for shimmer, the lighthouse beam, the train's bob and the rain drips.
-- **Seeded random numbers.** A small generator (mulberry32) replaces `Math.random`, because `Math.random` cannot be restarted from a known point. Weather particles get their own seeded generator, so respawning raindrops never disturbs the scenery's sequence.
-- **Particle pool.** Every raindrop and snowflake is created once. When one lands it is moved back above the screen and reused, so no memory is allocated while the scene runs and frame times stay even.
-- **Weather depth.** Particles sit in three depth bands, like the layers. They drift sideways at the speed of the world at their depth, because the camera rides with the train, and that drift is what slants the rain. Only the nearest band is drawn in front of the train.
-- **Batched drawing.** Each weather band is one path and one draw call, which keeps hundreds of particles at 60 fps.
-- **Glow.** Windows and lamps glow through canvas shadow blur in a warm colour, not through images.
-- **Journey timeline.** A small state object tracks whether the train is in the open or in a tunnel and how long it has been there. The new landscape is built halfway through the tunnel, while the screen is dark, so the swap is never seen.
-- **Easing.** The tunnel fades follow an ease-in-out curve instead of a straight line, so the light leaves and returns gently rather than switching on and off.
-- **Lights through the dark.** The darkness is drawn over everything, then the train's lights are drawn again on top at the same strength, so they stay lit while the rest of the world disappears.
+- **Plain scripts, no build.** `index.html` loads the files in `js/` in order, then `main.js`. They are plain scripts rather than modules, so the page still runs when opened straight from disk. Later files use what earlier files define.
+
+| File | What it does |
+| --- | --- |
+| `js/random.js` | Seeded random numbers, a hash and one-dimensional noise |
+| `js/camera.js` | Turns metres into pixels. The only place that does |
+| `js/journey.js` | Rolls a journey from its number, and names it |
+| `js/sky.js` | Sky, moon and the ground plane |
+| `js/track.js` | Ballast, sleepers, rails, telegraph poles and the grass in front |
+| `js/biomes/*.js` | The five landscapes, and `builders.js`, which assembles them |
+| `js/train.js` | The train |
+| `js/weather.js` | Rain and snow |
+| `js/timeline.js` | Biomes, tunnels and starting a journey |
+| `main.js` | Speed, the frame loop and the order things are drawn in |
+
+- **Everything is measured in metres.** The camera stands 12 metres from the track and 6 metres up. Something `z` metres away is drawn `focal / z` pixels per metre and slides past at the same rate, so size and speed always agree. A fence post is 1.3 m, a telegraph pole 8 m, a pine 15 to 27 m, and they all look right next to the train because none of them is sized by hand. The ground follows the same rule: flat ground `z` metres away sits `height × focal / z` pixels below the horizon, which is why the sleepers narrow towards the far rail and the furrows all point at one spot on the horizon.
+- **One distance, one source.** The train's wheels, the sleepers and every layer move by the same metres travelled. The wheels can no longer slide over the ground, and nothing has a hand-tuned scroll speed.
+- **Speed with momentum.** The train eases towards a target speed instead of jumping to it. The target drifts gently around cruising speed for now. Stations will lower it to zero.
+- **Scenery from the slot number, not a list.** The world is cut into slots along the line, and the slot's number is the seed for what stands there: the tree in slot 812 is always the same tree. Any stretch of the line can be drawn without generating what came before it, so the scenery never repeats and needs no wrapping. Ridges and skylines use smooth noise along the line, measured in metres, so a mountain keeps its shape as it drifts by.
+- **Seeded random numbers.** `Math.random` can't be replayed, so the scene uses `hash` instead: it takes the sine of a large number and keeps the decimals, which gives a random-looking value between 0 and 1 that is always the same for the same inputs. `seededRandom(seed)` wraps it into a sequence that can be replayed from the start.
+- **Particle pool.** Every raindrop and snowflake is created once. When one lands it is moved back above the screen and reused, so no memory is allocated while the scene runs.
+- **Batched drawing.** Each row of trees, each set of sleepers and each weather band is one path and one draw call.
+- **Journey timeline.** A small state object tracks whether the train is in the open or in a tunnel. The new landscape is built halfway through the tunnel, while the screen is dark, so the swap is never seen.
+- **Journey names.** Each journey's name is built from its departure time, its landscapes and its weather. The name has its own seeded random stream, so naming a journey never changes the journey.
+- **Fits any screen.** The camera is sized to the window, so a resize only needs a new camera. On a narrow screen the locomotive stays in view while the tail runs off the edge.
 
 ## Roadmap
 
-- [x] Canvas, resize handling and delta-time loop
-- [x] Sky, moon and parallax layers
-- [x] Seeded randomness and journey generator
-- [x] Five landscapes
-- [x] The train
-- [x] Weather: rain and snow
-- [x] Tunnels between landscapes, the journey timeline and the "new journey" button
-- [ ] Journey label, reduced-motion fallback and deployment
+The first version is in the git history (canvas, layers, seeded journeys, five landscapes, the train, weather, tunnel fades, names). The rebuild:
 
-Later, if it gets that far: stations, fog, synthesised rain and rail sound, and journeys shared by link.
+- [x] **Phase 0.** Split the single script into files
+- [x] **Phase 1.** A camera in metres: correct scale and speed for everything, a real track with sleepers and two rails, telegraph poles, grass in front of the line
+- [ ] **Phase 2.** Textures and light: noise textures made once at startup, a glow pass, moonlight from one side, stars, a textured moon with a halo, clouds
+- [ ] **Phase 3.** The train rebuilt: real proportions, spoked wheels with rods that move like real ones, liveries, firebox glow, window light on the ground, steam and smoke
+- [ ] **Phase 4.** The five landscapes rebuilt on the new system, with fog as a fourth weather and haze with distance
+- [ ] **Phase 5.** Braking and stations, and real tunnels with portals the train disappears into
+- [ ] **Phase 6.** Sound made in the browser: puffs timed to the wheels, rail joints, brakes, the whistle, echo in tunnels, rain and wind
+- [ ] **Phase 7.** Performance, mobile, journeys shared by link, a new preview image
 
 ## Palette
 

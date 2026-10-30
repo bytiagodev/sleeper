@@ -2,12 +2,52 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Sleeper</title>
+  <meta name="description" content="A night train you watch from outside. Every journey is different: city lights, pine forest, open fields, a moonlit coast and mountains, in clear skies, rain or snow. Everything on screen is drawn by code.">
+  <meta name="theme-color" content="#090b18">
+  <meta name="color-scheme" content="dark">
+
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Sleeper">
+  <meta property="og:description" content="A night train you watch from outside. Every journey is different: city lights, pine forest, open fields, a moonlit coast and mountains, in clear skies, rain or snow. Everything on screen is drawn by code.">
+  <meta property="og:url" content="https://bytiagodev.github.io/sleeper/">
+  <meta property="og:image" content="https://bytiagodev.github.io/sleeper/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="A lit steam train crossing a moonlit landscape at night">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <!-- The icon is written inline as a vector, so it needs no image file. -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23151a38'/%3E%3Ccircle cx='22.5' cy='9.5' r='4.5' fill='%23f2ead8'/%3E%3Crect x='3' y='18' width='26' height='9' rx='2.5' fill='%230a0b12'/%3E%3Crect x='6' y='20.5' width='4.5' height='4' fill='%23ffc76e'/%3E%3Crect x='13.75' y='20.5' width='4.5' height='4' fill='%23ffc76e'/%3E%3Crect x='21.5' y='20.5' width='4.5' height='4' fill='%23c98f4a'/%3E%3C/svg%3E">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600&display=swap">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <canvas id="scene"></canvas>
-  <button id="new-journey" type="button">New journey</button>
+  <canvas id="scene" role="img" aria-label="A lit night train crossing a generated landscape"></canvas>
+  <div class="chrome">
+    <p id="journey-label" class="is-hidden" aria-live="polite"></p>
+    <button id="new-journey" type="button">New journey</button>
+  </div>
+  <!-- Plain scripts in order, not modules, so the page also runs when
+       opened straight from disk. Later files use what earlier ones define. -->
+  <script src="js/random.js"></script>
+  <script src="js/camera.js"></script>
+  <script src="js/journey.js"></script>
+  <script src="js/sky.js"></script>
+  <script src="js/track.js"></script>
+  <script src="js/biomes/city.js"></script>
+  <script src="js/biomes/forest.js"></script>
+  <script src="js/biomes/fields.js"></script>
+  <script src="js/biomes/mountains.js"></script>
+  <script src="js/biomes/coast.js"></script>
+  <script src="js/biomes/builders.js"></script>
+  <script src="js/train.js"></script>
+  <script src="js/weather.js"></script>
+  <script src="js/timeline.js"></script>
   <script src="main.js"></script>
 </body>
 </html>

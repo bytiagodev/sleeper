@@ -12,19 +12,47 @@ canvas {
   display: block;
 }
 
+/* The only text on screen: the journey's name and the one button, low in
+   the dark ground below the rails, where they never cover the scene. */
+.chrome {
+  position: fixed;
+  left: 28px;
+  right: 28px;
+  bottom: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  font-family: "Manrope", system-ui, sans-serif;
+  pointer-events: none;
+}
+
+#journey-label {
+  font-size: 15px;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  color: rgba(242, 234, 216, 0.68);
+  transition: opacity 1.2s ease;
+}
+
+#journey-label.is-hidden {
+  opacity: 0;
+}
+
 /* Quiet until you reach for it: half visible at rest, full on hover. */
 #new-journey {
-  position: fixed;
-  left: 24px;
-  bottom: 24px;
-  padding: 10px 18px;
-  font: 600 13px "Manrope", system-ui, sans-serif;
+  flex-shrink: 0;
+  padding: 9px 18px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
   letter-spacing: 0.04em;
   color: #f2ead8;
   background: rgba(9, 11, 24, 0.55);
   border: 1px solid rgba(242, 234, 216, 0.22);
   border-radius: 999px;
   cursor: pointer;
+  pointer-events: auto;
   opacity: 0.55;
   transition:
     opacity 0.4s,
@@ -42,4 +70,27 @@ canvas {
 #new-journey:disabled {
   opacity: 0.15;
   cursor: default;
+}
+
+/* On a phone the label sits on its own line above the button. */
+@media (max-width: 640px) {
+  .chrome {
+    left: 16px;
+    right: 16px;
+    bottom: 18px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  #journey-label {
+    font-size: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #journey-label,
+  #new-journey {
+    transition: none;
+  }
 }
