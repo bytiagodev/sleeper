@@ -109,13 +109,22 @@ function drawCarriageRoof(length, pixel) {
   ctx.quadraticCurveTo(length / 2, -4.23, length - 0.15, bodyTop - 0.03);
   ctx.stroke();
 
-  // Roof vents
+  // Roof vents, each sitting on the curve of the roof
   ctx.fillStyle = "#121319";
   for (let ventX = 1.2; ventX < length - 0.8; ventX += 1.6) {
     ctx.beginPath();
-    ctx.ellipse(ventX, -3.98, 0.18, 0.1, 0, Math.PI, 0);
+    ctx.ellipse(ventX, roofHeightAt(ventX, length) + 0.02, 0.16, 0.08, 0, Math.PI, 0);
     ctx.fill();
   }
+}
+
+// How high the roof is at a point along the carriage. The roof is a curve
+// pulled up towards -4.25 in the middle; with the pull point in the middle,
+// the height follows the simple formula below, highest at the centre.
+function roofHeightAt(x, length) {
+  const edge = bodyTop + 0.05;
+  const along = (x + 0.05) / (length + 0.1);
+  return edge + 2 * along * (1 - along) * (-4.25 - edge);
 }
 
 function drawBogie(centerX, pixel) {
