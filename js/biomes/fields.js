@@ -141,10 +141,11 @@ function createFenceLayer(seed) {
   };
 }
 
-// A hedge along a field boundary: a lumpy band of bushes, about two metres
-// high, with the odd gap for a gate.
+// A hedgerow along a field boundary: a row of rounded bushes about two
+// metres high, a gap here and there for a gate, and now and then a full-size
+// tree growing up out of the hedge.
 function createHedgeLayer(seed) {
-  const z = 58;
+  const z = 40;
   const fill = hazed("#090c18", z);
   return {
     z,
@@ -152,24 +153,40 @@ function createHedgeLayer(seed) {
       const scale = scaleAt(z);
       const baseY = groundYAt(z);
       const hedge = new Path2D();
-      let inHedge = false;
-      for (let screenX = -6; screenX <= window.innerWidth + 6; screenX += 4) {
-        const x = worldXAt(screenX, z);
-        const isGap = smoothNoise(x / 40, seed) < 0.22;
-        const height = (1.4 + layeredNoise(x / 3, seed + 1, 3) * 1.4) * scale;
-        if (isGap) {
-          if (inHedge) hedge.lineTo(screenX, baseY);
-          inHedge = false;
-          continue;
+      forEachSlot(z, 1.1, 8, (index, x) => {
+        // Smooth noise along the line decides where the gaps are, so a gap
+        // is several metres wide rather than a single missing bush.
+        if (smoothNoise(x / 45, seed) < 0.25) return;
+        const random = seededRandom(seed, index);
+
+        for (let i = 0; i < 2; i++) {
+          const radius = (0.6 + random() * 0.75) * scale;
+          const bushX = screenXAt(x + random() * 1.1, z);
+          const bushY = baseY - radius * (0.9 + random() * 0.5);
+          hedge.moveTo(bushX + radius, bushY);
+          hedge.arc(bushX, bushY, radius, 0, Math.PI * 2);
         }
-        if (!inHedge) hedge.moveTo(screenX, baseY);
-        hedge.lineTo(screenX, baseY - height);
-        inHedge = true;
-      }
-      if (inHedge) hedge.lineTo(window.innerWidth + 6, baseY);
-      fillWithMoonlitEdge(hedge, fill, 0.18);
+        // Fill in down to the ground so the hedge has no holes at the bottom.
+        hedge.rect(screenXAt(x, z), baseY - 0.9 * scale, 1.15 * scale, 0.9 * scale);
+
+        if (random() < 0.035) traceHedgerowTree(hedge, screenXAt(x, z), baseY, scale, random);
+      });
+      fillWithMoonlitEdge(hedge, fill, 0.2);
     },
   };
+}
+
+function traceHedgerowTree(path, treeX, baseY, scale, random) {
+  const height = (8 + random() * 5) * scale;
+  const trunkWidth = 0.5 * scale;
+  path.rect(treeX - trunkWidth / 2, baseY - height * 0.55, trunkWidth, height * 0.55);
+  for (let i = 0; i < 6; i++) {
+    const radius = height * (0.16 + random() * 0.1);
+    const circleX = treeX + (random() - 0.5) * height * 0.6;
+    const circleY = baseY - height * (0.55 + random() * 0.32);
+    path.moveTo(circleX + radius, circleY);
+    path.arc(circleX, circleY, radius, 0, Math.PI * 2);
+  }
 }
 
 // Furrows run straight away from the camera, so in perspective they all

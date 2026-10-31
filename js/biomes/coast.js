@@ -114,7 +114,9 @@ function drawLighthouse(centerX, baseY, scale) {
   drawGlow(centerX, lampY, 22, warmLight, 0.6);
 
   // The beam swings round; seen from the side it grows and shrinks.
-  const beamLength = Math.cos((performance.now() / 1000) * 0.8) * 300;
+  // One full turn every 18 seconds, about the pace of a real lighthouse.
+  const turnsPerSecond = 1 / 18;
+  const beamLength = Math.cos((performance.now() / 1000) * turnsPerSecond * Math.PI * 2) * 300;
   if (Math.abs(beamLength) > 4) {
     const tipX = centerX + beamLength;
     const beam = ctx.createLinearGradient(centerX, 0, tipX, 0);
@@ -149,44 +151,56 @@ function drawLighthouse(centerX, baseY, scale) {
   ctx.fill();
 }
 
+const headlandZ = 480;
+const headlandLength = 520;
+
+function headlandHeightAlong(progress, peak, index) {
+  const lumps = 0.85 + 0.15 * Math.sin(progress * 9 + index);
+  return peak * Math.sin(Math.PI * progress) ** 1.5 * lumps;
+}
+
+function drawHeadland(startX, peak, index, landColor) {
+  const scale = scaleAt(headlandZ);
+  const waterY = groundYAt(headlandZ) + 1;
+  ctx.fillStyle = landColor;
+  ctx.beginPath();
+  ctx.moveTo(screenXAt(startX, headlandZ), waterY);
+  for (let progress = 0; progress <= 1; progress += 0.02) {
+    const height = headlandHeightAlong(progress, peak, index);
+    ctx.lineTo(screenXAt(startX + progress * headlandLength, headlandZ), waterY - height * scale);
+  }
+  ctx.lineTo(screenXAt(startX + headlandLength, headlandZ), waterY);
+  ctx.fill();
+}
+
+// Bare headlands along the coast, and exactly one with a lighthouse. The
+// lighthouse is placed when the coast is built, on the right-hand side of
+// the screen, so it is in view for the whole stretch of coast and never has
+// a twin beside it.
 function createHeadlandLayer(seed) {
-  const z = 480;
+  const z = headlandZ;
   const spacing = 900;
-  const length = 520;
   const landColor = hazed("#141935", z);
 
-  function heightAlong(progress, peak, index) {
-    const lumps = 0.85 + 0.15 * Math.sin(progress * 9 + index);
-    return peak * Math.sin(Math.PI * progress) ** 1.5 * lumps;
-  }
+  const random = seededRandom(seed, 0);
+  const lighthouseX = worldXAt(window.innerWidth * (0.55 + random() * 0.25), z);
+  const lighthouseStart = lighthouseX - headlandLength * 0.65;
+  const lighthousePeak = 40 + random() * 15;
 
   return {
     z,
     draw() {
-      const scale = scaleAt(z);
-      const waterY = groundYAt(z) + 1;
-      forEachSlot(z, spacing, length, (index, x) => {
-        const random = seededRandom(seed, index);
-        if (random() > 0.75) return;
-        const startX = x + random() * (spacing - length);
-        const peak = 30 + random() * 25;
-
-        ctx.fillStyle = landColor;
-        ctx.beginPath();
-        ctx.moveTo(screenXAt(startX, z), waterY);
-        for (let progress = 0; progress <= 1; progress += 0.02) {
-          const height = heightAlong(progress, peak, index);
-          ctx.lineTo(screenXAt(startX + progress * length, z), waterY - height * scale);
-        }
-        ctx.lineTo(screenXAt(startX + length, z), waterY);
-        ctx.fill();
-
-        if (random() < 0.7) {
-          const towerX = startX + 0.65 * length;
-          const groundHeight = heightAlong(0.65, peak, index);
-          drawLighthouse(screenXAt(towerX, z), waterY - groundHeight * scale + 1, scale);
-        }
+      forEachSlot(z, spacing, headlandLength, (index, x) => {
+        const slotRandom = seededRandom(seed, index);
+        if (slotRandom() > 0.6) return;
+        const startX = x + slotRandom() * (spacing - headlandLength);
+        drawHeadland(startX, 25 + slotRandom() * 20, index, landColor);
       });
+
+      drawHeadland(lighthouseStart, lighthousePeak, 0, landColor);
+      const scale = scaleAt(z);
+      const groundHeight = headlandHeightAlong(0.65, lighthousePeak, 0);
+      drawLighthouse(screenXAt(lighthouseX, z), groundYAt(z) + 2 - groundHeight * scale, scale);
     },
   };
 }
