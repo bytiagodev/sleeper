@@ -8,6 +8,7 @@ const puffs = [];
 let puffSprites = [];
 let smokeRandom;
 let distanceSinceChuff = 0;
+let secondsSinceIdlePuff = 0;
 
 function resetSmoke() {
   smokeRandom = seededRandom(journey.seed + 8000);
@@ -16,7 +17,7 @@ function resetSmoke() {
   for (let i = 0; i < puffCount; i++) puffs.push({ alive: false });
 }
 
-// A soft, lumpy ball of smoke, painted once and reused for every puff.
+// A soft, lumpy ball of smoke, drawn once and reused for every puff.
 function createPuffSprite(seed) {
   const size = 64;
   return makeTexture(size, size, (x, y) => {
@@ -48,6 +49,16 @@ function updateSmoke(dt) {
     // Two overlapping puffs per chuff, so the trail looks continuous.
     releasePuff();
     releasePuff();
+  }
+
+  // Standing at a station, the engine still breathes out a lazy puff now
+  // and then, which rises straight up because the train isn't moving.
+  if (motion.speed < 0.3) {
+    secondsSinceIdlePuff += dt;
+    if (secondsSinceIdlePuff > 0.7) {
+      secondsSinceIdlePuff = 0;
+      releasePuff();
+    }
   }
 
   for (const puff of puffs) {

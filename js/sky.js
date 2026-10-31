@@ -34,8 +34,8 @@ function buildSky() {
   if (cloudSprites.length === 0) cloudSprites = [1, 2, 3].map(createCloudSprite);
 }
 
-// Painted at half size and stretched to fit: the sky is so smooth that the
-// difference can't be seen, and it is four times quicker to paint.
+// Drawn at half size and stretched to fit: the sky is so smooth that the
+// difference can't be seen, and it is four times quicker to draw.
 function createSkyGradient() {
   const colors = skyColors[activeWeather];
   const moon = getMoon();
@@ -73,7 +73,7 @@ function createSkyGradient() {
   });
 }
 
-// Most stars are painted into the sky image once. The brightest few are
+// Most stars are drawn into the sky image once. The brightest few are
 // kept aside and drawn every frame, so they can twinkle.
 function drawStars(starCtx) {
   const random = seededRandom(journey.seed + 300);

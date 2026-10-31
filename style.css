@@ -35,7 +35,18 @@ canvas {
   transition: opacity 1.2s ease;
 }
 
-#journey-label.is-hidden {
+#station-label {
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 210, 140, 0.75);
+  transition: opacity 1.2s ease;
+}
+
+#journey-label.is-hidden,
+#station-label.is-hidden {
   opacity: 0;
 }
 
@@ -90,6 +101,7 @@ canvas {
 
 @media (prefers-reduced-motion: reduce) {
   #journey-label,
+  #station-label,
   #new-journey {
     transition: none;
   }

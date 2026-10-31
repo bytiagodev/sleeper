@@ -140,7 +140,7 @@ function createVergeLayer(seed) {
           const tuftX = screenXAt(x + random(), z);
           const tuftHeight = (0.12 + random() * random() * 0.5) * scale;
           const tuftWidth = (0.25 + random() * 0.35) * scale;
-          traceTuft(tuftX, baseY, tuftWidth, tuftHeight);
+          traceTuft(ctx, tuftX, baseY, tuftWidth, tuftHeight);
         });
       });
       ctx.fill();
@@ -148,14 +148,14 @@ function createVergeLayer(seed) {
   };
 }
 
-// Three blades of grass growing from one root.
-function traceTuft(x, baseY, width, height) {
-  ctx.moveTo(x - width / 2, baseY);
-  ctx.lineTo(x - width * 0.45, baseY - height * 0.75);
-  ctx.lineTo(x - width * 0.1, baseY);
-  ctx.lineTo(x, baseY - height);
-  ctx.lineTo(x + width * 0.12, baseY);
-  ctx.lineTo(x + width / 2, baseY - height * 0.65);
-  ctx.lineTo(x + width / 2, baseY);
-  ctx.closePath();
+// Three blades of grass growing from one root, added to a path.
+function traceTuft(path, x, baseY, width, height) {
+  path.moveTo(x - width / 2, baseY);
+  path.lineTo(x - width * 0.45, baseY - height * 0.75);
+  path.lineTo(x - width * 0.1, baseY);
+  path.lineTo(x, baseY - height);
+  path.lineTo(x + width * 0.12, baseY);
+  path.lineTo(x + width / 2, baseY - height * 0.65);
+  path.lineTo(x + width / 2, baseY);
+  path.closePath();
 }

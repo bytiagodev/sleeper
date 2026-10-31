@@ -17,6 +17,10 @@ function buildBiomeLayers(biome) {
     createTrackLayer(),
     createVergeLayer(journey.seed + 91),
   ];
+  if (segment.station) layers.push(...createStationLayers(segment.station));
+  if (segment.exitX !== null) layers.push(...createTunnelLayers(segment.exitX, -1, journey.seed + 600));
+  layers.push(...createTunnelLayers(segment.tunnelX, 1, journey.seed + 601));
+
   // Draw far to near, so nearer things cover farther ones.
   layers.sort((a, b) => b.z - a.z);
   return layers;

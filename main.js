@@ -3,27 +3,6 @@ let activeWeather;
 let activeBiome;
 let layers = [];
 
-// Speeds are in metres per second. The train eases towards its target speed
-// instead of jumping to it, so it can later brake into stations.
-const cruiseSpeed = 8;
-const acceleration = 0.6;
-const motion = { speed: cruiseSpeed, clock: 0 };
-
-// The target drifts slowly around cruising speed, so the ride never feels
-// mechanical.
-function getTargetSpeed(seconds) {
-  const drift = Math.sin(seconds * 0.15) * 0.12 + Math.sin(seconds * 0.37) * 0.03;
-  return cruiseSpeed * (1 + drift);
-}
-
-function updateMotion(dt) {
-  motion.clock += dt;
-  const difference = getTargetSpeed(motion.clock) - motion.speed;
-  const maxChange = acceleration * dt;
-  motion.speed += Math.max(-maxChange, Math.min(maxChange, difference));
-  travelled += motion.speed * dt;
-}
-
 function resize() {
   const pixelRatio = window.devicePixelRatio || 1;
   canvas.width = window.innerWidth * pixelRatio;

@@ -58,6 +58,12 @@ function screenXAt(worldX, z) {
   return window.innerWidth / 2 + (worldX - travelled) * scaleAt(z);
 }
 
+// Any point in the world, given its position along the line, its distance
+// from the camera and its height above the ground, all in metres.
+function projectPoint(worldX, z, height) {
+  return { x: screenXAt(worldX, z), y: groundYAt(z) - height * scaleAt(z) };
+}
+
 function worldXAt(screenX, z) {
   return travelled + (screenX - window.innerWidth / 2) / scaleAt(z);
 }
@@ -72,4 +78,28 @@ function forEachSlot(z, spacing, margin, fn) {
   for (let index = first; index <= last; index++) {
     fn(index, index * spacing);
   }
+}
+
+// Fills a flat shape given by its corners, each [along the line, distance,
+// height] in metres.
+function fillShape(corners) {
+  ctx.beginPath();
+  corners.forEach(([x, z, height], i) => {
+    const point = projectPoint(x, z, height);
+    if (i === 0) ctx.moveTo(point.x, point.y);
+    else ctx.lineTo(point.x, point.y);
+  });
+  ctx.closePath();
+  ctx.fill();
+}
+
+// Text standing upright in the world, sized in metres.
+function drawWorldText(text, x, z, height, sizeMetres, color) {
+  const point = projectPoint(x, z, height);
+  ctx.font = `600 ${sizeMetres * scaleAt(z)}px Georgia, serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillStyle = color;
+  ctx.fillText(text, point.x, point.y);
+  ctx.textBaseline = "alphabetic";
 }

@@ -48,6 +48,18 @@ function getTrainLayout() {
   return { left, scale, pixel: 1 / scale };
 }
 
+// Where the front of the locomotive and the end of the last carriage are,
+// as positions along the line in metres, the same units as the scenery.
+function getTrainFrontX() {
+  const layout = getTrainLayout();
+  const locomotive = getLocomotive();
+  return worldXAt(trainToScreenX(layout, locomotive.x + locomotive.length), camera.trackZ);
+}
+
+function getTrainTailX() {
+  return worldXAt(getTrainLayout().left, camera.trackZ);
+}
+
 function trainToScreenX(layout, metres) {
   return layout.left + metres * layout.scale;
 }

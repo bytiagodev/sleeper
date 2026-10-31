@@ -22,7 +22,7 @@ function generateJourney(seed) {
     livery: Math.floor(random() * 3),
   };
 
-  const stations = biomes.map(() => random() < 0.3);
+  const stations = biomes.map(() => random() < 0.5);
   const biomeSeconds = biomes.map(() => 50 + random() * 30);
 
   return { seed, biomes, weather, hour, minute, train, stations, biomeSeconds };

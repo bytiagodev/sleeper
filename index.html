@@ -29,7 +29,10 @@
 <body>
   <canvas id="scene" role="img" aria-label="A lit night train crossing a generated landscape"></canvas>
   <div class="chrome">
-    <p id="journey-label" class="is-hidden" aria-live="polite"></p>
+    <div class="labels">
+      <p id="journey-label" class="is-hidden" aria-live="polite"></p>
+      <p id="station-label" class="is-hidden" aria-live="polite"></p>
+    </div>
     <button id="new-journey" type="button">New journey</button>
   </div>
   <!-- Plain scripts in order, not modules, so the page also runs when
@@ -38,7 +41,9 @@
   <script src="js/camera.js"></script>
   <script src="js/textures.js"></script>
   <script src="js/atmosphere.js"></script>
+  <script src="js/prerender.js"></script>
   <script src="js/journey.js"></script>
+  <script src="js/motion.js"></script>
   <script src="js/sky.js"></script>
   <script src="js/track.js"></script>
   <script src="js/biomes/city.js"></script>
@@ -46,6 +51,8 @@
   <script src="js/biomes/fields.js"></script>
   <script src="js/biomes/mountains.js"></script>
   <script src="js/biomes/coast.js"></script>
+  <script src="js/stations.js"></script>
+  <script src="js/tunnels.js"></script>
   <script src="js/biomes/builders.js"></script>
   <script src="js/train.js"></script>
   <script src="js/carriages.js"></script>

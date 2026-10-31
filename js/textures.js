@@ -1,5 +1,5 @@
-// Textures are painted once, when the page loads or the window changes size,
-// and then reused every frame. Painting them pixel by pixel is slow, but it
+// Textures are drawn once, when the page loads or the window changes size,
+// and then reused every frame. Drawing them pixel by pixel is slow, but it
 // only happens once.
 
 // colorAt(x, y) returns [red, green, blue, alpha], each from 0 to 255.
@@ -34,9 +34,9 @@ function makeCanvas(width, height) {
 
 // Glows
 
-// A soft round glow, painted once per colour and then stamped wherever a
+// A soft round glow, drawn once per colour and then stamped wherever a
 // light is. "lighter" adds the glow's colour to what is underneath, the way
-// light adds up, instead of painting over it.
+// light adds up, instead of image over it.
 const glowSprites = {};
 
 function getGlowSprite(color) {
@@ -133,7 +133,7 @@ function drawGroundTexture(farthestZ) {
 
 let finish;
 
-// Darkened corners and a faint grain over the whole frame, painted together
+// Darkened corners and a faint grain over the whole frame, drawn together
 // into one image. The grain also hides visible steps in smooth gradients.
 function createFinish() {
   const width = window.innerWidth;

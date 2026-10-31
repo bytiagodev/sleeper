@@ -1,11 +1,20 @@
-// Between two landscapes the train goes through a tunnel. The screen fades
-// out, holds, and fades back in; the new landscape is swapped in during the
-// hold, while nothing can be seen.
-const tunnelFadeOutSeconds = 1.8;
+// A journey is a series of landscapes joined by tunnels. Each landscape is a
+// stretch of line measured in metres: it begins where the train comes out of
+// one tunnel, may have a station halfway along, and ends at the mouth of
+// the next tunnel.
+//
+// Once half the train is inside a tunnel, the screen fades to dark: the
+// camera has gone in with it. Only the train's lights and the lamps on the
+// tunnel wall show. The next landscape is built in the dark, with the exit
+// placed just ahead of the locomotive, and the screen fades back in as the
+// train comes out.
+
+const tunnelFadeOutSeconds = 1.2;
 const tunnelHoldSeconds = 3;
-const tunnelFadeInSeconds = 2.4;
+const tunnelFadeInSeconds = 1.6;
 const tunnelSeconds = tunnelFadeOutSeconds + tunnelHoldSeconds + tunnelFadeInSeconds;
 const tunnelSwapSeconds = tunnelFadeOutSeconds + tunnelHoldSeconds / 2;
+const fadeInStartSeconds = tunnelFadeOutSeconds + tunnelHoldSeconds;
 
 const timeline = {
   stage: "open", // "open" or "tunnel"
@@ -15,15 +24,35 @@ const timeline = {
   nextSeed: null, // set only by the New journey button
 };
 
-const newJourneyButton = document.getElementById("new-journey");
+// The stretch of line for the current landscape.
+let segment = null;
 
-function showBiome(index) {
+const newJourneyButton = document.getElementById("new-journey");
+const stationLabel = document.getElementById("station-label");
+
+// secondsToExit is how long until the train should come out of a tunnel.
+// It is null at the very start, when the journey begins in the open.
+function showBiome(index, secondsToExit = null) {
   timeline.biomeIndex = index;
   activeBiome = journey.biomes[index];
+
+  let startX = getTrainFrontX();
+  let exitX = null;
+  if (secondsToExit !== null) {
+    exitX = startX + motion.speed * secondsToExit;
+    startX = exitX;
+  }
+
+  const length = journey.biomeSeconds[index] * cruiseSpeed;
+  segment = { exitX, tunnelX: startX + length, station: null };
+  if (journey.stations[index]) {
+    segment.station = createStation(startX + length * 0.5, journey.seed + 500 + index);
+  }
+
   layers = buildBiomeLayers(activeBiome);
 }
 
-function startJourney(seed) {
+function startJourney(seed, secondsToExit = null) {
   journey = generateJourney(seed);
   activeWeather = journey.weather;
   trainVehicles = createTrain();
@@ -31,7 +60,8 @@ function startJourney(seed) {
   weatherRandom = seededRandom(journey.seed + 7000);
   weatherBands = createWeatherBands();
   buildSky();
-  showBiome(0);
+  motion.state = "running";
+  showBiome(0, secondsToExit);
 }
 
 function enterTunnel(nextSeed) {
@@ -52,46 +82,61 @@ function leaveTunnel() {
 
 function updateTimeline(dt) {
   timeline.elapsed += dt;
+  updateStationLabel();
 
   if (timeline.stage === "open") {
-    if (timeline.elapsed >= journey.biomeSeconds[timeline.biomeIndex]) {
-      enterTunnel(null);
-    }
+    // The camera follows the train in once half of it is inside.
+    const trainMiddleX = (getTrainFrontX() + getTrainTailX()) / 2;
+    if (trainMiddleX > segment.tunnelX) enterTunnel(null);
     return;
   }
 
   if (!timeline.swapped && timeline.elapsed >= tunnelSwapSeconds) {
     timeline.swapped = true;
+    const secondsToExit = fadeInStartSeconds - timeline.elapsed;
     if (timeline.nextSeed !== null) {
-      startJourney(timeline.nextSeed);
+      startJourney(timeline.nextSeed, secondsToExit);
       showJourneyLabel();
     } else {
       const nextIndex = (timeline.biomeIndex + 1) % journey.biomes.length;
-      showBiome(nextIndex);
+      showBiome(nextIndex, secondsToExit);
     }
   }
 
   if (timeline.elapsed >= tunnelSeconds) leaveTunnel();
 }
 
+// "Now stopping at…" shows while the train slows for a station and while
+// it stands there, and fades once it leaves.
+function updateStationLabel() {
+  const station = segment.station;
+  const atStation = station && (motion.state === "braking" || motion.state === "stopped");
+  if (atStation) {
+    stationLabel.textContent = `Now stopping at ${station.name}`;
+    stationLabel.classList.remove("is-hidden");
+  } else {
+    stationLabel.classList.add("is-hidden");
+  }
+}
+
 function getTunnelDarkness() {
   if (timeline.stage !== "tunnel") return 0;
 
   const time = timeline.elapsed;
-  const fadeInStart = tunnelFadeOutSeconds + tunnelHoldSeconds;
   if (time < tunnelFadeOutSeconds) {
     return easeInOut(time / tunnelFadeOutSeconds);
   }
-  if (time < fadeInStart) {
+  if (time < fadeInStartSeconds) {
     return 1;
   }
-  const fadeInProgress = Math.min(1, (time - fadeInStart) / tunnelFadeInSeconds);
+  const fadeInProgress = Math.min(1, (time - fadeInStartSeconds) / tunnelFadeInSeconds);
   return 1 - easeInOut(fadeInProgress);
 }
 
 // The darkness covers everything, including the train. The train's lights
-// are then drawn again on top so they stay lit. A new journey fades fully
-// to black instead, because the train itself may change in the dark.
+// and the tunnel's wall lamps are then drawn again on top so they stay lit.
+// A new journey fades fully to black instead, because the train itself may
+// change in the dark.
 function drawTunnel() {
   const darkness = getTunnelDarkness();
   if (darkness === 0) return;
@@ -100,6 +145,7 @@ function drawTunnel() {
   ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
 
   if (timeline.nextSeed === null) {
+    drawTunnelWallLamps(darkness);
     ctx.globalAlpha = darkness;
     drawTrainLights();
     ctx.globalAlpha = 1;
