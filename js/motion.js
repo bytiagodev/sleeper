@@ -45,7 +45,7 @@ function updateMotion(dt) {
     if (distanceToStop < 0.05 || motion.speed < 0.05) {
       motion.speed = 0;
       motion.state = "stopped";
-      motion.secondsToWait = stationStopSeconds;
+      motion.secondsToWait = station.stopSeconds;
       station.visited = true;
     } else {
       // The same formula turned around: the exact deceleration that brings
@@ -57,6 +57,7 @@ function updateMotion(dt) {
   }
 
   if (motion.state === "stopped") {
+    updatePassengers(station, dt);
     motion.secondsToWait -= dt;
     if (motion.secondsToWait <= 0) motion.state = "running";
   }

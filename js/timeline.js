@@ -30,8 +30,11 @@ let segment = null;
 const newJourneyButton = document.getElementById("new-journey");
 const stationLabel = document.getElementById("station-label");
 
+// Every journey begins with the train standing at a station, ready to leave.
+const departureWaitSeconds = 8;
+
 // secondsToExit is how long until the train should come out of a tunnel.
-// It is null at the very start, when the journey begins in the open.
+// It is null when there is no tunnel to come out of.
 function showBiome(index, secondsToExit = null) {
   timeline.biomeIndex = index;
   activeBiome = journey.biomes[index];
@@ -52,7 +55,29 @@ function showBiome(index, secondsToExit = null) {
   layers = buildBiomeLayers(activeBiome);
 }
 
-function startJourney(seed, secondsToExit = null) {
+// The first landscape, with the train already standing at a platform, its
+// front on the stopping mark. secondsInDark is how long the screen stays
+// dark before the scene fades in, so the stop lasts that much longer.
+function showDepartureStation(secondsInDark) {
+  timeline.biomeIndex = 0;
+  activeBiome = journey.biomes[0];
+
+  const frontX = getTrainFrontX();
+  const waitSeconds = departureWaitSeconds + secondsInDark;
+  const length = journey.biomeSeconds[0] * cruiseSpeed;
+  const station = createStation(frontX - stopPastMiddle, journey.seed + 500, waitSeconds, true);
+  segment = { exitX: null, tunnelX: frontX + length, station };
+
+  motion.state = "stopped";
+  motion.speed = 0;
+  motion.secondsToWait = waitSeconds;
+
+  layers = buildBiomeLayers(activeBiome);
+}
+
+// secondsInDark is set when a new journey starts inside a tunnel, while the
+// screen is black.
+function startJourney(seed, secondsInDark = 0) {
   journey = generateJourney(seed);
   activeWeather = journey.weather;
   trainVehicles = createTrain();
@@ -60,8 +85,7 @@ function startJourney(seed, secondsToExit = null) {
   weatherRandom = seededRandom(journey.seed + 7000);
   weatherBands = createWeatherBands();
   buildSky();
-  motion.state = "running";
-  showBiome(0, secondsToExit);
+  showDepartureStation(secondsInDark);
 }
 
 function enterTunnel(nextSeed) {
@@ -95,7 +119,7 @@ function updateTimeline(dt) {
     timeline.swapped = true;
     const secondsToExit = fadeInStartSeconds - timeline.elapsed;
     if (timeline.nextSeed !== null) {
-      startJourney(timeline.nextSeed, secondsToExit);
+      startJourney(timeline.nextSeed, secondsToExit + tunnelFadeInSeconds);
       showJourneyLabel();
     } else {
       const nextIndex = (timeline.biomeIndex + 1) % journey.biomes.length;
@@ -111,7 +135,10 @@ function updateTimeline(dt) {
 function updateStationLabel() {
   const station = segment.station;
   const atStation = station && (motion.state === "braking" || motion.state === "stopped");
-  if (atStation) {
+  if (station && station.isDeparture && motion.state === "stopped") {
+    stationLabel.textContent = `Departing from ${station.name}`;
+    stationLabel.classList.remove("is-hidden");
+  } else if (atStation) {
     stationLabel.textContent = `Now stopping at ${station.name}`;
     stationLabel.classList.remove("is-hidden");
   } else {

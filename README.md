@@ -44,7 +44,9 @@ While developing, in `main.js`:
 
 **Tunnels.** A journey passes through two to four landscapes, each about half a kilometre of line, and loops when it reaches the end. Each landscape ends at a hill with a stone tunnel mouth. The train drives into the arch and the hill closes over it; once half the train is inside, the camera follows it in and the screen goes dark, with only the train's lights and the lamps on the tunnel wall showing. The next landscape is built in the dark, and the train comes out of a hillside into it. **New journey** fades the whole frame to black and the new train comes out of a tunnel into a different ride.
 
-**Stations.** Half of all landscapes have a country station on the far side of the line: a platform with a canopy and lamps, a station building with its name, people waiting, name boards at each end and a semaphore signal. The train brakes, stops with its whole length alongside the platform, waits twelve seconds with the signal at red, then the signal drops to green and the train pulls away. The station's name shows under the journey's name while it stops.
+**Stations.** Half of all landscapes have a country station on the far side of the line: a platform with a canopy and lamps, a station building with its name, people waiting, name boards at each end and a semaphore signal. The train brakes, stops with its whole length alongside the platform, waits twelve seconds with the signal at red, then the signal drops to green and the train pulls away. The station's name shows under the journey's name while it stops. While it stands there, some passengers get off and people from the platform get on, one at a time, so compartments light up and empty, and the people who got off are left on the platform as it leaves.
+
+Every journey, including one started with New journey, begins with the train standing at a station, ready to leave.
 
 **Seeded journeys.** A journey is a number. The same number always produces the same biome sequence, landscapes, weather, time and train, which is what will make journeys shareable by link.
 
@@ -67,6 +69,7 @@ While developing, in `main.js`:
 | `js/tunnels.js` | Tunnel mouths, the hill they go through, and the lamps inside |
 | `js/train.js` | The train as a whole: its vehicles, where it sits on screen, wheels, light on the ground |
 | `js/carriages.js` | Sleeping cars, their windows and passengers |
+| `js/passengers.js` | Who gets on and off at each station, and when |
 | `js/locomotive.js` | The locomotive, its rods and lamps, and the tender |
 | `js/smoke.js` | Smoke from the chimney |
 | `js/atmosphere.js` | Haze with distance, the air for each weather, and fog banks |

@@ -28,17 +28,27 @@ const stationGreen = "#173027";
 const creamPaint = "rgba(233, 223, 196, 0.92)";
 const goldLining = "rgba(214, 176, 98, 0.85)";
 
-function createStation(stationX, seed) {
+// The train stops with its front this far past the middle of the platform,
+// so even the longest train is alongside it.
+const stopPastMiddle = 30;
+
+// stopSeconds is how long the train stands at the platform. A departure
+// station is where the journey begins.
+function createStation(stationX, seed, stopSeconds = stationStopSeconds, isDeparture = false) {
   const random = seededRandom(seed);
-  return {
+  const station = {
     x: stationX,
-    // The train stops with its front 30 m past the middle of the platform,
-    // so even the longest train is alongside it.
-    stopX: stationX + 30,
+    stopX: stationX + stopPastMiddle,
     name: pick(random, stationNames),
     seed,
-    visited: false,
+    // The train has already stopped at a departure station.
+    visited: isDeparture,
+    isDeparture,
+    stopSeconds,
+    secondsStopped: 0,
   };
+  planPassengers(station);
+  return station;
 }
 
 function createStationLayers(station) {
@@ -353,18 +363,6 @@ function drawPosterBoard(p, left, bottom, seed) {
 
 function createPlatformLayer(station) {
   const x = station.x;
-  const random = seededRandom(station.seed, 2);
-  const people = [];
-  const peopleCount = 2 + Math.floor(random() * 4);
-  for (let i = 0; i < peopleCount; i++) {
-    people.push({
-      x: x - 25 + random() * 50,
-      z: platformFrontZ + 1.5 + random() * 2,
-      height: 1.6 + random() * 0.25,
-      hasCase: random() < 0.5,
-    });
-  }
-
   const valance = prerenderCanopyValance(canopyHalfLength * 2);
   hazePrerendered(valance, canopyFrontZ);
   const wall = prerenderPlatformWall(platformHalfLength * 2 + 10, station.seed);
@@ -377,7 +375,9 @@ function createPlatformLayer(station) {
     draw() {
       drawCanopyRoof(x);
       drawPlatformTop(x);
-      for (const person of people) drawPerson(person);
+      for (const person of station.people) {
+        if (person.onPlatform) drawPerson(person);
+      }
       drawPrerendered(wall, x - platformHalfLength - 5, platformFrontZ);
       drawPrerendered(valance, x - canopyHalfLength, canopyFrontZ, 4.6);
       drawCanopyLamps(x);
