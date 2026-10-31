@@ -13,7 +13,7 @@ function generateJourney(seed) {
     biomes.push(pick(random, allowedBiomes));
   }
 
-  const weather = pick(random, ["clear", "rain", "snow"]);
+  const weather = pick(random, ["clear", "rain", "snow", "fog"]);
   const hour = 22 + Math.floor(random() * 3);
   const minute = Math.floor(random() * 60);
 
@@ -41,6 +41,7 @@ const weatherEndings = {
   clear: ["", "", ", by moonlight", ", under a full moon"],
   rain: [", in the rain", ", in steady rain", ", with rain on the glass"],
   snow: [", in falling snow", ", in the first snow", ", in a slow snowfall"],
+  fog: [", in the fog", ", through thick fog", ", with fog on the line"],
 };
 
 function createJourneyLabel(journey) {

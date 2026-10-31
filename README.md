@@ -19,26 +19,27 @@ If your system asks for reduced motion, Sleeper shows a single still frame of th
 While developing, in `main.js`:
 
 - To replay one journey, change `startJourney(randomSeed())` at the bottom of `main.js` to a fixed number, such as `startJourney(2)`.
-- To force a weather, change `activeWeather = journey.weather` inside `startJourney` in `js/timeline.js` to `"clear"`, `"rain"` or `"snow"`.
+- To force a weather, change `activeWeather = journey.weather` inside `startJourney` in `js/timeline.js` to `"clear"`, `"rain"`, `"snow"` or `"fog"`.
 - To reach the tunnels faster, shorten the biome time in `generateJourney` in `js/journey.js` (`50 + random() * 30` seconds).
 - To move the camera, change `height` and `trackZ` in `js/camera.js`. Every size and speed in the scene follows from those two numbers.
 
 ## What is in it
 
-**Five landscapes**, each built from layers that scroll at different speeds, so the near ones rush past and the far ones barely move:
+**Five landscapes**, each built from layers at real distances, so the near ones rush past and the far ones barely move:
 
-- **City:** skylines grown by a random walk, with lit and dim windows and the odd antenna.
-- **Forest:** three rows of trees, pale and slow at the back, dark and fast at the front.
-- **Fields:** a wavy horizon, a ground plane with furrows that converge toward the distance, a farm with barn and silo, lone trees and a fence.
-- **Coast:** a sea that mirrors the sky at the horizon, a broken moon reflection that shimmers, drifting waves, and a headland with a lighthouse and a sweeping beam.
-- **Mountains:** layered ranges with sharp peaks, a rim of moonlight on the slopes, rolling foothills and a few distant lights.
+- **City:** two rows of towers with lit and dim windows, warehouses and yard walls closer in, and a street of lamps alongside the line, each throwing a pool of light on the road.
+- **Forest:** three rows of spruces, pale and slow at the back, dark and fast at the front, with bushes just behind the track.
+- **Fields:** low hills, furrows that converge toward the horizon, farms with a barn and silo, hedgerows with gaps for gates, lone trees and a fence.
+- **Coast:** a sea with a shimmering moon reflection and waves at every distance, surf breaking along the shore, rocks on the beach, and headlands with a lighthouse and a sweeping beam.
+- **Mountains:** layered ranges with sharp peaks and a rim of moonlight, foothills with farm lights, pine forest on the lower slopes and a few pines by the line.
 
 **The train.** A steam locomotive, its tender and one to three sleeping cars in maroon, green or blue, all drawn to scale in metres. The driving wheels carry counterweights and a coupling rod, and a connecting rod drives a crosshead that slides back and forth as the wheels turn. The fire glows through the cab, two lamps light the way ahead, and smoke leaves the chimney four times per turn of the wheels and trails back over the train. Some compartments are lit, some dim and some already dark; light from the windows falls on the ground in front of the train. Each vehicle rocks a little on its own springs.
 
-**Weather.** Clear, rain or snow, chosen by the journey:
+**Weather.** Clear, rain, snow or fog, chosen by the journey. Each weather has its own air: on a clear night the far mountains are still sharp, while in fog a tree 150 m away is already half gone.
 
 - **Rain:** angled streaks, a darker world, a wider glow around the windows and drops sliding down the carriage glass.
-- **Snow:** drifting, swaying flakes, a brighter edge where snow lies on the ground, and snow caps on the mountain peaks.
+- **Snow:** drifting, swaying flakes, settled snow on the ground, and snow caps on the mountain peaks.
+- **Fog:** banks of fog lying at every distance, even between the train and the camera, drifting slowly. Stars disappear, the moon blurs, and every lamp glows twice as wide.
 
 **Tunnels.** A journey passes through two to four landscapes, each lasting about a minute, and loops when it reaches the end. Between landscapes the train enters a tunnel: the world fades to near black, only the train's windows and lamps stay lit, and the next landscape opens up as it leaves. **New journey** fades the whole frame to black and starts a different ride in the dark.
 
@@ -61,6 +62,7 @@ While developing, in `main.js`:
 | `js/carriages.js` | Sleeping cars, their windows and passengers |
 | `js/locomotive.js` | The locomotive, its rods and lamps, and the tender |
 | `js/smoke.js` | Smoke from the chimney |
+| `js/atmosphere.js` | Haze with distance, the air for each weather, and fog banks |
 | `js/weather.js` | Rain and snow |
 | `js/timeline.js` | Biomes, tunnels and starting a journey |
 | `main.js` | Speed, the frame loop and the order things are drawn in |
@@ -75,6 +77,7 @@ While developing, in `main.js`:
 - **Textured ground in perspective.** The ground is drawn in thin strips. Each strip is a slice of one repeating texture, stretched to the scale of its distance and shifted by how far the train has gone, so near ground rushes past and far ground creeps.
 - **Glows add light.** Every lamp and lit window stamps a soft glow painted once per colour, drawn with the "lighter" blend so the glow brightens what is under it.
 - **Moonlit edges.** Trees, buildings and poles are filled once in moonlight, shifted a pixel up and to the right, then again in their own colour, which leaves a thin lit edge on the moon's side.
+- **Haze with distance.** Every colour in the landscape is faded towards the colour of the air by how far away it is, using `hazed(colour, distance)`. How quickly things fade depends on the weather. Windows and lamps fade more slowly, because they give off their own light.
 - **Batched drawing.** Each row of trees, each set of sleepers and each weather band is one path and one draw call.
 - **The train in metres.** Before the train is drawn, the canvas is moved to its left end at rail height and scaled so one unit is one metre, so the train is measured the same way as the world around it.
 - **Smoke follows the wheels.** A puff leaves the chimney every quarter turn of the driving wheels. Once out, the smoke stays where it is while the train moves on, so it trails back along the train as it rises and spreads.
@@ -89,7 +92,7 @@ The first version is in the git history (canvas, layers, seeded journeys, five l
 - [x] **Rebuild 1.** Split the single script into files, and a camera in metres: correct scale and speed for everything, a real track with sleepers and two rails, telegraph poles, grass in front of the line
 - [x] **Rebuild 2.** Textures and light: noise textures made once at startup, glows, moonlit edges, stars, a textured moon, clouds, a textured ground
 - [x] **Rebuild 3.** The train rebuilt: real proportions, spoked wheels with rods that move like real ones, liveries, firebox glow, window light on the ground, smoke
-- [ ] **Rebuild 4.** The five landscapes rebuilt on the new system, with fog as a fourth weather and haze with distance
+- [x] **Rebuild 4.** The five landscapes rebuilt on the new system, with fog as a fourth weather and haze with distance
 - [ ] **Rebuild 5.** Braking and stations, and real tunnels with portals the train disappears into
 - [ ] **Rebuild 6.** Sound made in the browser: puffs timed to the wheels, rail joints, brakes, the whistle, echo in tunnels, rain and wind
 - [ ] **Rebuild 7.** Performance, mobile, journeys shared by link, a new preview image

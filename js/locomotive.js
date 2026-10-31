@@ -285,8 +285,10 @@ function drawLocomotiveLights() {
 
 function drawHeadlampBeam(lampX, lampY) {
   const length = 7;
+  // In thick air the beam lights up the fog and becomes clearly visible.
+  const opacity = Math.min(0.6, 0.3 * getAir().glowSize);
   const beam = ctx.createLinearGradient(lampX, 0, lampX + length, 0);
-  beam.addColorStop(0, "rgba(255, 220, 160, 0.3)");
+  beam.addColorStop(0, `rgba(255, 220, 160, ${opacity})`);
   beam.addColorStop(1, "rgba(255, 220, 160, 0)");
   ctx.fillStyle = beam;
   ctx.beginPath();

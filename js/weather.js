@@ -1,7 +1,7 @@
 // Particles sit at three depths. Far ones are small, faint and slow; near
 // ones are big, bright and fast. Only the nearest are drawn over the train.
 const weatherDepths = [0.2, 0.55, 1];
-const particleCounts = { clear: 0, rain: 420, snow: 270 };
+const particleCounts = { clear: 0, rain: 420, snow: 270, fog: 0 };
 
 let weatherRandom;
 let weatherBands = [];

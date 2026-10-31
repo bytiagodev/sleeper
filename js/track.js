@@ -101,7 +101,7 @@ function createPoleLayer(seed) {
 
         armTops.push({ x: topX, y: armY });
       });
-      fillWithMoonlitEdge(poles, "#0b0d1a", 0.35);
+      fillWithMoonlitEdge(poles, hazed("#0b0d1a", z), 0.35 * (1 - hazeAt(z)));
 
       ctx.strokeStyle = "rgba(22, 26, 48, 0.9)";
       ctx.lineWidth = 0.8;

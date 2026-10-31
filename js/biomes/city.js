@@ -1,4 +1,8 @@
 function createCityLayer({ seed, z, plotWidth, minHeight, heightRange, color, windowColor, litChance, edgeAlpha, windowGlow }) {
+  const fill = hazed(color, z);
+  // Windows fade into the haze too, but slower than walls, because they
+  // give off their own light.
+  const windowVisibility = 1 - hazeAt(z) * 0.7;
   return {
     z,
     draw() {
@@ -45,8 +49,10 @@ function createCityLayer({ seed, z, plotWidth, minHeight, heightRange, color, wi
         }
       });
 
-      fillWithMoonlitEdge(buildings, color, edgeAlpha);
+      fillWithMoonlitEdge(buildings, fill, edgeAlpha * (1 - hazeAt(z)));
 
+      ctx.save();
+      ctx.globalAlpha = windowVisibility;
       ctx.fillStyle = windowColor;
       for (const pane of litWindows) {
         ctx.fillRect(pane.x, pane.y, windowWidth, windowHeight);
@@ -60,6 +66,76 @@ function createCityLayer({ seed, z, plotWidth, minHeight, heightRange, color, wi
       for (const pane of dimWindows) {
         ctx.fillRect(pane.x, pane.y, windowWidth, windowHeight);
       }
+      ctx.restore();
+    },
+  };
+}
+
+// Low warehouses and yard walls between the city and the line.
+function createYardLayer(seed) {
+  const z = 34;
+  const fill = hazed("#0a0b15", z);
+  return {
+    z,
+    draw() {
+      const scale = scaleAt(z);
+      const baseY = groundYAt(z);
+      const sheds = new Path2D();
+      const litWindows = [];
+      forEachSlot(z, 30, 30, (index, x) => {
+        const random = seededRandom(seed, index);
+        if (random() < 0.3) {
+          // An empty plot with just a wall along it
+          sheds.rect(screenXAt(x, z), baseY - 2.2 * scale, 30 * scale, 2.2 * scale);
+          return;
+        }
+        const width = 14 + random() * 12;
+        const wallHeight = 4 + random() * 4;
+        const left = screenXAt(x + 2, z);
+        const right = screenXAt(x + 2 + width, z);
+        sheds.moveTo(left, baseY);
+        sheds.lineTo(left, baseY - wallHeight * scale);
+        sheds.lineTo((left + right) / 2, baseY - (wallHeight + 2.5) * scale);
+        sheds.lineTo(right, baseY - wallHeight * scale);
+        sheds.lineTo(right, baseY);
+        sheds.closePath();
+        if (random() < 0.5) {
+          litWindows.push({ x: left + (2 + random() * (width - 4)) * scale, y: baseY - (wallHeight - 1.5) * scale });
+        }
+      });
+      fillWithMoonlitEdge(sheds, fill, 0.22);
+
+      for (const pane of litWindows) {
+        ctx.fillStyle = "#e0a85c";
+        ctx.fillRect(pane.x, pane.y, 1.4 * scale, 1 * scale);
+        drawGlow(pane.x + 0.7 * scale, pane.y + 0.5 * scale, 3 * scale, warmLight, 0.35);
+      }
+    },
+  };
+}
+
+// A street running alongside the line, lit by lamps every 35 m. Each lamp
+// throws a pool of light on the road below it.
+function createStreetLampLayer(seed) {
+  const z = 22;
+  const lampHeight = 5;
+  return {
+    z,
+    draw() {
+      const scale = scaleAt(z);
+      const baseY = groundYAt(z);
+      forEachSlot(z, 35, 5, (index, x) => {
+        const lampX = screenXAt(x, z);
+        const lampY = baseY - lampHeight * scale;
+        drawLightPool(lampX, baseY, 6 * scale);
+
+        ctx.fillStyle = "#07080e";
+        ctx.fillRect(lampX - 0.08 * scale, lampY, 0.16 * scale, lampHeight * scale);
+        ctx.fillRect(lampX - 0.08 * scale, lampY, 0.9 * scale, 0.1 * scale);
+        ctx.fillStyle = "#ffd28a";
+        ctx.fillRect(lampX + 0.6 * scale, lampY + 0.1 * scale, 0.3 * scale, 0.18 * scale);
+        drawGlow(lampX + 0.75 * scale, lampY + 0.2 * scale, 4 * scale, warmLight, 0.6);
+      });
     },
   };
 }
@@ -89,5 +165,5 @@ function createCityLayers(seed) {
     edgeAlpha: 0.25,
     windowGlow: 0.35,
   });
-  return [farRow, nearRow];
+  return [farRow, nearRow, createYardLayer(seed + 3), createStreetLampLayer(seed + 4)];
 }

@@ -4,8 +4,9 @@ const skyColors = {
   clear: { top: [10, 13, 38], horizon: [38, 44, 92], moonGlow: 1 },
   snow: { top: [16, 18, 34], horizon: [50, 52, 76], moonGlow: 0.7 },
   rain: { top: [9, 10, 20], horizon: [28, 30, 46], moonGlow: 0.3 },
+  fog: { top: [30, 32, 48], horizon: [64, 68, 90], moonGlow: 1.6 },
 };
-const starCounts = { clear: 900, snow: 300, rain: 40 };
+const starCounts = { clear: 900, snow: 300, rain: 40, fog: 0 };
 
 let skyImage;
 let twinklingStars = [];
@@ -135,6 +136,7 @@ function drawSky() {
   const moon = getMoon();
   ctx.save();
   if (activeWeather === "rain") ctx.globalAlpha = 0.35;
+  if (activeWeather === "fog") ctx.globalAlpha = 0.45;
   ctx.drawImage(moonImage, moon.x - moonRadius, moon.y - moonRadius);
   ctx.restore();
 }
@@ -155,7 +157,7 @@ function createCloudSprite(seed) {
   });
 }
 
-const cloudChance = { clear: 0.3, snow: 0.7, rain: 0.95 };
+const cloudChance = { clear: 0.3, snow: 0.7, rain: 0.95, fog: 0 };
 
 function createCloudLayer(seed) {
   const z = 3000;
@@ -214,7 +216,7 @@ function drawGround() {
   const bottom = window.innerHeight;
 
   const ground = ctx.createLinearGradient(0, top, 0, bottom);
-  ground.addColorStop(0, colors.far);
+  ground.addColorStop(0, hazed(colors.far, 400));
   ground.addColorStop(1, colors.near);
   ctx.fillStyle = ground;
   ctx.fillRect(0, top, window.innerWidth, bottom - top);

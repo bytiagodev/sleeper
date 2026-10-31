@@ -63,8 +63,45 @@ function createSeaLayer(seed) {
       });
       ctx.globalAlpha = 1;
 
-      ctx.fillStyle = "rgba(170, 180, 215, 0.25)";
-      ctx.fillRect(0, seaBottom - 1, window.innerWidth, 1.5);
+      drawBreakingFoam(seaBottom);
+    },
+  };
+}
+
+// Where the waves break on the beach. Each stretch of foam brightens and
+// fades on its own slow cycle, so the surf rolls along the shore.
+function drawBreakingFoam(shoreY) {
+  const seconds = performance.now() / 1000;
+  const scale = scaleAt(shoreZ);
+  ctx.fillStyle = "#c8d0e8";
+  forEachSlot(shoreZ, 3, 3, (index, x) => {
+    const surge = Math.sin(seconds * 0.9 + index * 0.7) * 0.5 + 0.5;
+    ctx.globalAlpha = 0.08 + surge * 0.3;
+    ctx.fillRect(screenXAt(x, shoreZ), shoreY - 1 - surge * 0.15 * scale, 3 * scale, 1.5);
+  });
+  ctx.globalAlpha = 1;
+}
+
+// Rocks on the beach between the sea and the line.
+function createBeachRockLayer(seed) {
+  const z = 18;
+  const fill = hazed("#090a12", z);
+  return {
+    z,
+    draw() {
+      const scale = scaleAt(z);
+      const baseY = groundYAt(z);
+      const rocks = new Path2D();
+      forEachSlot(z, 4, 2, (index, x) => {
+        const random = seededRandom(seed, index);
+        if (random() < 0.6) return;
+        const rockX = screenXAt(x + random() * 3, z);
+        const width = (0.6 + random() * 1.4) * scale;
+        const height = width * (0.35 + random() * 0.3);
+        rocks.moveTo(rockX + width / 2, baseY);
+        rocks.ellipse(rockX, baseY, width / 2, height, 0, 0, Math.PI, true);
+      });
+      fillWithMoonlitEdge(rocks, fill, 0.3);
     },
   };
 }
@@ -116,6 +153,7 @@ function createHeadlandLayer(seed) {
   const z = 480;
   const spacing = 900;
   const length = 520;
+  const landColor = hazed("#141935", z);
 
   function heightAlong(progress, peak, index) {
     const lumps = 0.85 + 0.15 * Math.sin(progress * 9 + index);
@@ -133,7 +171,7 @@ function createHeadlandLayer(seed) {
         const startX = x + random() * (spacing - length);
         const peak = 30 + random() * 25;
 
-        ctx.fillStyle = "#141935";
+        ctx.fillStyle = landColor;
         ctx.beginPath();
         ctx.moveTo(screenXAt(startX, z), waterY);
         for (let progress = 0; progress <= 1; progress += 0.02) {
@@ -154,5 +192,5 @@ function createHeadlandLayer(seed) {
 }
 
 function createCoastLayers(seed) {
-  return [createSeaLayer(seed + 1), createHeadlandLayer(seed + 2)];
+  return [createSeaLayer(seed + 1), createHeadlandLayer(seed + 2), createBeachRockLayer(seed + 3)];
 }

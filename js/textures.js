@@ -57,7 +57,9 @@ function getGlowSprite(color) {
 }
 
 // color is "red, green, blue", for example "255, 199, 110".
+// Glows spread wider in rain and fog, because the wet air scatters light.
 function drawGlow(x, y, radius, color, strength = 1) {
+  radius *= getAir().glowSize;
   ctx.save();
   ctx.globalCompositeOperation = "lighter";
   ctx.globalAlpha *= strength;
@@ -66,6 +68,17 @@ function drawGlow(x, y, radius, color, strength = 1) {
 }
 
 const warmLight = "255, 190, 105";
+
+// A pool of lamplight on the ground: a glow squashed flat, because the
+// ground is seen at a low angle.
+function drawLightPool(x, groundY, radius, color = warmLight, strength = 0.3) {
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  ctx.globalAlpha *= strength;
+  const height = radius * 0.3;
+  ctx.drawImage(getGlowSprite(color), x - radius, groundY - height / 2, radius * 2, height);
+  ctx.restore();
+}
 
 // Ground
 

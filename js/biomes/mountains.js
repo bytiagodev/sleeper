@@ -17,6 +17,11 @@ function createMountainLayer({
     return maxHeight * (0.12 + 0.88 * value);
   }
 
+  const fill = hazed(color, z);
+  const haze = hazeAt(z);
+  let snowFill = null;
+  if (snowColor) snowFill = hazed(snowColor, z);
+
   return {
     z,
     draw() {
@@ -39,17 +44,17 @@ function createMountainLayer({
         ctx.closePath();
       }
 
-      ctx.fillStyle = color;
+      ctx.fillStyle = fill;
       traceRange();
       ctx.fill();
 
       // Clip to the mountain so the snow only covers the slopes above the
       // snow line, not the sky.
-      if (snowColor) {
+      if (snowFill) {
         ctx.save();
         traceRange();
         ctx.clip();
-        ctx.fillStyle = snowColor;
+        ctx.fillStyle = snowFill;
         ctx.beginPath();
         ctx.moveTo(first.screenX, 0);
         for (const point of outline) {
@@ -63,7 +68,7 @@ function createMountainLayer({
 
       // The moon is on the right, so only slopes facing right catch its light.
       if (rimAlpha > 0) {
-        ctx.strokeStyle = `rgba(130, 150, 230, ${rimAlpha})`;
+        ctx.strokeStyle = `rgba(130, 150, 230, ${rimAlpha * (1 - haze)})`;
         ctx.lineWidth = 1.5;
         ctx.beginPath();
         for (let i = 1; i < outline.length; i++) {
@@ -87,7 +92,7 @@ function createMountainLayer({
           const lightHeight = heightAt(lightX) * (0.1 + random() * 0.4);
           const brightness = 0.4 + random() * 0.5;
           const lightY = baseY - lightHeight * scale;
-          ctx.globalAlpha = brightness;
+          ctx.globalAlpha = brightness * (1 - haze * 0.7);
           ctx.fillRect(screenXAt(lightX, z), lightY, 2, 2);
           ctx.globalAlpha = 1;
           drawGlow(screenXAt(lightX, z) + 1, lightY + 1, 7, warmLight, brightness * 0.5);
@@ -104,7 +109,7 @@ function createMountainLayers(seed) {
     z: 2000,
     peakSpacing: 1100,
     maxHeight: 1600,
-    color: "#161a3a",
+    color: "#0e1130",
     sharpPeaks: true,
     rimAlpha: 0.22,
     snowColor: snowing ? "#4d5588" : null,
@@ -114,7 +119,7 @@ function createMountainLayers(seed) {
     z: 1100,
     peakSpacing: 600,
     maxHeight: 700,
-    color: "#10142e",
+    color: "#0a0d24",
     sharpPeaks: true,
     rimAlpha: 0.14,
     snowColor: snowing ? "#323966" : null,
@@ -124,9 +129,12 @@ function createMountainLayers(seed) {
     z: 350,
     peakSpacing: 180,
     maxHeight: 110,
-    color: "#0b0f24",
+    color: "#070a1a",
     sharpPeaks: false,
     lightChance: 0.3,
   });
-  return [farRange, middleRange, foothills];
+  // Pines on the lower slopes, and a few scattered near the line.
+  const slopeForest = createTreeRow({ seed: seed + 4, z: 220, spacing: 6, minHeight: 10, heightRange: 8, color: "#0a0d20", gapChance: 0.45, edgeAlpha: 0.12 });
+  const nearPines = createTreeRow({ seed: seed + 5, z: 45, spacing: 7, minHeight: 9, heightRange: 10, color: "#06070e", gapChance: 0.75, edgeAlpha: 0.25 });
+  return [farRange, middleRange, foothills, slopeForest, nearPines];
 }

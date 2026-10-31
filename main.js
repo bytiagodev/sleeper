@@ -96,6 +96,7 @@ window.addEventListener("resize", () => {
 });
 
 createGroundPattern();
+createFogTexture();
 resize();
 startJourney(randomSeed());
 showJourneyLabel();

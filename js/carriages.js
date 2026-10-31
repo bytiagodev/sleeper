@@ -132,10 +132,6 @@ function drawBogie(centerX, pixel) {
 // The glass, the people behind it and the glow. Kept separate from the body
 // so a tunnel can draw only these.
 function drawCarriageLights(carriage) {
-  // Wet air spreads light further, so the glow is bigger in the rain.
-  let glowRadius = 0.9;
-  if (activeWeather === "rain") glowRadius = 1.4;
-
   carriage.windows.forEach((pane, i) => {
     const left = windowX(i);
     const glass = ctx.createLinearGradient(0, windowTop, 0, windowTop + windowHeight);
@@ -179,7 +175,7 @@ function drawCarriageLights(carriage) {
 
     let strength = 0.3;
     if (pane.state === "dim") strength = 0.12;
-    drawGlow(left + windowWidth / 2, windowTop + windowHeight / 2, glowRadius, warmLight, strength);
+    drawGlow(left + windowWidth / 2, windowTop + windowHeight / 2, 0.9, warmLight, strength);
   });
 }
 

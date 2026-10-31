@@ -11,6 +11,7 @@ const biomeBuilders = {
 function buildBiomeLayers(biome) {
   const layers = [
     createCloudLayer(journey.seed + 101),
+    ...createFogBanks(),
     ...biomeBuilders[biome](),
     createPoleLayer(journey.seed + 81),
     createTrackLayer(),
