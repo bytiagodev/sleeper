@@ -1,0 +1,335 @@
+// Sound, all made by code with the Web Audio API. There are no recordings.
+//
+// Every sound starts from one of two raw materials:
+//   noise:  a hiss of random values. Passed through a filter it becomes
+//           wind, rain, steam, the rumble of wheels or a knock.
+//   tones:  plain notes from oscillators, for the whistle and the brakes.
+//
+// There are two kinds of sound:
+//   beds:   steady sounds that loop for ever (wind, rain, the rumble of the
+//           wheels, steam hiss, brake squeal). Each frame only their volume
+//           changes, to follow what is happening.
+//   events: short sounds started at one moment (a chuff, a wheel crossing a
+//           rail joint, a door, the whistle).
+//
+// Browsers only allow sound after a click, so sound starts off and the
+// Sound button turns it on.
+
+const sound = {
+  context: null,
+  on: false,
+  distanceSinceChuff: 0,
+  axleJoints: [],
+  trainOfAxles: null,
+  previousState: null,
+  previousTunnelDistance: Infinity,
+  doorsHeard: new Set(),
+};
+
+const soundButton = document.getElementById("sound-toggle");
+
+const windByWeather = { clear: 0.05, rain: 0.08, snow: 0.1, fog: 0.04 };
+const rainVolume = 0.07;
+// Three notes sounded together, like the chime whistles on many engines.
+const whistleNotes = [392, 494, 587];
+const tunnelWhistleDistance = 80;
+
+function startSound() {
+  const context = new AudioContext();
+  sound.context = context;
+  sound.noise = createNoiseBuffer(context, 2);
+
+  sound.master = context.createGain();
+  sound.master.gain.value = 1;
+  sound.master.connect(context.destination);
+
+  // Sounds of the train go through trainBus. Inside a tunnel some of it
+  // also goes through an echo, and comes back blurred and late off the
+  // walls. Wind and rain go straight to the master, so a tunnel can fade
+  // them out.
+  sound.trainBus = context.createGain();
+  sound.trainBus.connect(sound.master);
+  const echo = context.createConvolver();
+  echo.buffer = createEchoResponse(context, 2.5);
+  sound.echoVolume = context.createGain();
+  sound.echoVolume.gain.value = 0;
+  sound.trainBus.connect(echo).connect(sound.echoVolume).connect(sound.master);
+
+  sound.wind = createNoiseBed("lowpass", 500, 0.7, sound.master);
+  sound.rain = createNoiseBed("bandpass", 3000, 0.5, sound.master);
+  sound.rumble = createNoiseBed("lowpass", 120, 0.7, sound.trainBus);
+  sound.steam = createNoiseBed("highpass", 4000, 0.7, sound.trainBus);
+  sound.squeal = createToneBed([2900, 3170], sound.trainBus);
+}
+
+// Two seconds of random values, looped or cut into short bursts. Noise
+// doesn't need the journey's seed: no two gusts of wind sound alike anyway.
+function createNoiseBuffer(context, seconds) {
+  const buffer = context.createBuffer(1, context.sampleRate * seconds, context.sampleRate);
+  const samples = buffer.getChannelData(0);
+  for (let i = 0; i < samples.length; i++) samples[i] = Math.random() * 2 - 1;
+  return buffer;
+}
+
+// What a clap would sound like in a tunnel: noise that dies away. The
+// convolver plays this after every sound sent to it, which is an echo.
+function createEchoResponse(context, seconds) {
+  const length = context.sampleRate * seconds;
+  const buffer = context.createBuffer(2, length, context.sampleRate);
+  for (let channel = 0; channel < 2; channel++) {
+    const samples = buffer.getChannelData(channel);
+    for (let i = 0; i < length; i++) {
+      const fade = Math.pow(1 - i / length, 3);
+      samples[i] = (Math.random() * 2 - 1) * fade;
+    }
+  }
+  return buffer;
+}
+
+function createNoiseBed(filterType, frequency, q, destination) {
+  const context = sound.context;
+  const source = context.createBufferSource();
+  source.buffer = sound.noise;
+  source.loop = true;
+  const filter = context.createBiquadFilter();
+  filter.type = filterType;
+  filter.frequency.value = frequency;
+  filter.Q.value = q;
+  const volume = context.createGain();
+  volume.gain.value = 0;
+  source.connect(filter).connect(volume).connect(destination);
+  source.start();
+  return { filter, volume };
+}
+
+// Two notes slightly apart beat against each other, which gives the harsh
+// wobble of a brake shoe on a wheel.
+function createToneBed(frequencies, destination) {
+  const context = sound.context;
+  const volume = context.createGain();
+  volume.gain.value = 0;
+  volume.connect(destination);
+  for (const frequency of frequencies) {
+    const tone = context.createOscillator();
+    tone.frequency.value = frequency;
+    tone.connect(volume);
+    tone.start();
+  }
+  return { volume };
+}
+
+// Changes a volume smoothly rather than in a jump, which would click.
+function setVolume(bed, value) {
+  bed.volume.gain.setTargetAtTime(value, sound.context.currentTime, 0.25);
+}
+
+// -1 is fully left, 1 fully right, matching where a point is on screen.
+function panAt(worldX) {
+  const share = screenXAt(worldX, camera.trackZ) / window.innerWidth;
+  return Math.max(-0.8, Math.min(0.8, share * 2 - 1));
+}
+
+function sendToTrainBus(node, worldX) {
+  const panner = sound.context.createStereoPanner();
+  panner.pan.value = panAt(worldX);
+  node.connect(panner).connect(sound.trainBus);
+}
+
+// A short burst of filtered noise that starts sharply and dies away.
+function playNoiseBurst(worldX, filterType, frequency, q, volume, seconds) {
+  const context = sound.context;
+  const now = context.currentTime;
+  const source = context.createBufferSource();
+  source.buffer = sound.noise;
+  const filter = context.createBiquadFilter();
+  filter.type = filterType;
+  filter.frequency.value = frequency;
+  filter.Q.value = q;
+  const envelope = context.createGain();
+  envelope.gain.setValueAtTime(0, now);
+  envelope.gain.linearRampToValueAtTime(volume, now + 0.005);
+  envelope.gain.exponentialRampToValueAtTime(0.0001, now + seconds);
+  source.connect(filter).connect(envelope);
+  sendToTrainBus(envelope, worldX);
+  // Starting somewhere random in the noise keeps every burst different.
+  source.start(now, Math.random() * 1.5, seconds + 0.05);
+}
+
+function getChimneyWorldX() {
+  return getTrainTailX() + getLocomotive().x + chimneyX;
+}
+
+// A chuff is steam blasting out of the chimney. At low speed the engine is
+// working hard to get going, so each chuff is heavier.
+function playChuff() {
+  const effort = 1 - 0.5 * Math.min(1, motion.speed / cruiseSpeed);
+  const chimney = getChimneyWorldX();
+  playNoiseBurst(chimney, "bandpass", 600, 0.8, 1.2 * effort, 0.2);
+  playNoiseBurst(chimney, "lowpass", 160, 0.7, 0.6 * effort, 0.15);
+}
+
+// The clack of a wheel dropping over the small gap between two rails.
+function playRailClick(worldX) {
+  const loudness = Math.min(1, motion.speed / 4);
+  playNoiseBurst(worldX, "bandpass", 1800, 3, 0.14 * loudness, 0.05);
+  playNoiseBurst(worldX, "lowpass", 220, 0.7, 0.2 * loudness, 0.08);
+}
+
+function playDoor(worldX) {
+  playNoiseBurst(worldX, "lowpass", 300, 1, 0.5, 0.18);
+  playNoiseBurst(worldX, "bandpass", 1200, 2, 0.08, 0.04);
+}
+
+// One blast of the whistle, starting after `delay` seconds.
+function playWhistle(delay, seconds) {
+  const context = sound.context;
+  const start = context.currentTime + delay;
+  const end = start + seconds;
+
+  const envelope = context.createGain();
+  envelope.gain.setValueAtTime(0, start);
+  envelope.gain.linearRampToValueAtTime(0.1, start + 0.08);
+  envelope.gain.setValueAtTime(0.1, end);
+  envelope.gain.linearRampToValueAtTime(0, end + 0.25);
+  sendToTrainBus(envelope, getChimneyWorldX());
+
+  for (const note of whistleNotes) {
+    const tone = context.createOscillator();
+    tone.type = "triangle";
+    // A steam whistle slides up to its note as the steam comes on.
+    tone.frequency.setValueAtTime(note * 0.93, start);
+    tone.frequency.exponentialRampToValueAtTime(note, start + 0.12);
+    tone.connect(envelope);
+    tone.start(start);
+    tone.stop(end + 0.3);
+  }
+
+  // The rush of steam through the whistle under the notes
+  const breath = context.createBufferSource();
+  breath.buffer = sound.noise;
+  const breathFilter = context.createBiquadFilter();
+  breathFilter.type = "bandpass";
+  breathFilter.frequency.value = 1500;
+  breathFilter.Q.value = 2;
+  const breathVolume = context.createGain();
+  breathVolume.gain.value = 0.5;
+  breath.connect(breathFilter).connect(breathVolume).connect(envelope);
+  breath.start(start, 0, seconds + 0.3);
+}
+
+function updateSound(dt) {
+  if (!sound.on) return;
+  const darkness = getTunnelDarkness();
+  const outside = 1 - darkness;
+  const speedShare = motion.speed / cruiseSpeed;
+
+  // Wind comes and goes in gusts.
+  const gust = layeredNoise(motion.clock * 0.3, 77, 3);
+  setVolume(sound.wind, windByWeather[activeWeather] * (0.4 + gust) * outside);
+  sound.wind.filter.frequency.setTargetAtTime(300 + gust * 500, sound.context.currentTime, 0.5);
+  setVolume(sound.rain, activeWeather === "rain" ? rainVolume * outside : 0);
+
+  // Wheels rumble louder in the confined space of a tunnel.
+  setVolume(sound.rumble, 0.5 * speedShare * (1 + darkness));
+  setVolume(sound.steam, motion.state === "stopped" ? 0.03 : 0);
+  const squealing = motion.state === "braking" && motion.speed < 3;
+  setVolume(sound.squeal, squealing ? 0.012 * (1 - motion.speed / 3) + 0.004 : 0);
+  sound.echoVolume.gain.setTargetAtTime(darkness * 0.6, sound.context.currentTime, 0.3);
+
+  updateChuffs(dt);
+  updateRailClicks();
+  updateWhistles();
+  updateDoors();
+}
+
+// The same rhythm as the smoke: four chuffs for every turn of the wheels.
+function updateChuffs(dt) {
+  sound.distanceSinceChuff += motion.speed * dt;
+  while (sound.distanceSinceChuff >= chuffSpacing) {
+    sound.distanceSinceChuff -= chuffSpacing;
+    playChuff();
+  }
+}
+
+// The rail is laid in lengths with a joint every railJointSpacing metres.
+// Each axle clicks as it crosses one, so the clicks come in the pattern of
+// the train's wheels: the familiar clickety-clack.
+function updateRailClicks() {
+  const axles = getAxleXs();
+  if (sound.trainOfAxles !== trainVehicles) {
+    sound.trainOfAxles = trainVehicles;
+    sound.axleJoints = axles.map(() => null);
+  }
+  const tailX = getTrainTailX();
+  axles.forEach((axleX, i) => {
+    const worldX = tailX + axleX;
+    const joint = Math.floor(worldX / railJointSpacing);
+    const previous = sound.axleJoints[i];
+    // Only a step of one joint is a real crossing. A bigger jump means the
+    // scenery was rebuilt in a tunnel.
+    if (previous !== null && joint === previous + 1) playRailClick(worldX);
+    sound.axleJoints[i] = joint;
+  });
+}
+
+// Short then long when leaving a station, short when braking for one, and
+// a long blast before a tunnel.
+function updateWhistles() {
+  if (sound.previousState === "stopped" && motion.state === "running") {
+    playWhistle(0, 0.35);
+    playWhistle(0.55, 1.1);
+  }
+  if (sound.previousState === "running" && motion.state === "braking") {
+    playWhistle(0, 0.5);
+  }
+  sound.previousState = motion.state;
+
+  const tunnelDistance = segment.tunnelX - getTrainFrontX();
+  const reachedWhistlePoint =
+    sound.previousTunnelDistance > tunnelWhistleDistance && tunnelDistance <= tunnelWhistleDistance;
+  if (reachedWhistlePoint) playWhistle(0, 1.4);
+  sound.previousTunnelDistance = tunnelDistance;
+}
+
+// A door bangs each time someone gets on or off at a station.
+function updateDoors() {
+  const station = segment.station;
+  if (!station) return;
+  for (const change of station.changes) {
+    if (change.done && !sound.doorsHeard.has(change)) {
+      sound.doorsHeard.add(change);
+      playDoor(change.person.x);
+    }
+  }
+}
+
+// Turning sound on mid-journey shouldn't play everything that happened
+// while it was off, so the sound starts from how things are now.
+function catchUpSound() {
+  sound.previousState = motion.state;
+  sound.previousTunnelDistance = segment.tunnelX - getTrainFrontX();
+  if (segment.station) {
+    for (const change of segment.station.changes) {
+      if (change.done) sound.doorsHeard.add(change);
+    }
+  }
+}
+
+function setSoundOn(on) {
+  sound.on = on;
+  if (on && !sound.context) startSound();
+  if (on) catchUpSound();
+  if (on) sound.context.resume();
+  else if (sound.context) sound.context.suspend();
+  soundButton.textContent = on ? "Sound: on" : "Sound: off";
+  soundButton.setAttribute("aria-pressed", String(on));
+}
+
+soundButton.addEventListener("click", () => setSoundOn(!sound.on));
+
+// Silent while the tab is hidden, back when it is shown again.
+document.addEventListener("visibilitychange", () => {
+  if (!sound.context || !sound.on) return;
+  if (document.hidden) sound.context.suspend();
+  else sound.context.resume();
+});

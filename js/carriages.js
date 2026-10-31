@@ -5,6 +5,9 @@ const windowTop = -2.75;
 const windowHeight = 1.0;
 const bodyTop = -3.6;
 const bodyBottom = -0.95;
+// Each carriage rides on two bogies, each with two axles.
+const bogieInset = 1.9;
+const axleSpacing = 1.8;
 
 function windowX(index) {
   return 1.35 + index * 1.15;
@@ -30,6 +33,10 @@ function createCarriageWindows(random) {
   return windows;
 }
 
+function getBogieXs(length) {
+  return [bogieInset, length - bogieInset];
+}
+
 function getLivery() {
   return liveries[journey.train.livery];
 }
@@ -38,7 +45,7 @@ function drawCarriage(carriage, pixel) {
   const length = carriage.length;
   const livery = getLivery();
 
-  for (const bogieX of [1.9, length - 1.9]) drawBogie(bogieX, pixel);
+  for (const bogieX of getBogieXs(length)) drawBogie(bogieX, pixel);
 
   ctx.fillStyle = "#0d0e15";
   ctx.fillRect(0.15, bodyBottom, length - 0.3, 0.22);
@@ -130,7 +137,7 @@ function roofHeightAt(x, length) {
 function drawBogie(centerX, pixel) {
   ctx.fillStyle = "#0b0c12";
   ctx.fillRect(centerX - 1.4, -0.8, 2.8, 0.32);
-  for (const wheelX of [centerX - 0.9, centerX + 0.9]) {
+  for (const wheelX of [centerX - axleSpacing / 2, centerX + axleSpacing / 2]) {
     drawWheel(wheelX, -0.46, 0.46, 10, pixel);
   }
   ctx.fillStyle = "#1d2030";

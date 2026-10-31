@@ -12,8 +12,8 @@ canvas {
   display: block;
 }
 
-/* The only text on screen: the journey's name and the one button, low in
-   the dark ground below the rails, where they never cover the scene. */
+/* The only text on screen: the journey's name and two buttons, low in the
+   dark ground below the rails, where they never cover the scene. */
 .chrome {
   position: fixed;
   left: 28px;
@@ -50,9 +50,14 @@ canvas {
   opacity: 0;
 }
 
-/* Quiet until you reach for it: half visible at rest, full on hover. */
-#new-journey {
+.buttons {
+  display: flex;
   flex-shrink: 0;
+  gap: 10px;
+}
+
+/* Quiet until you reach for it: half visible at rest, full on hover. */
+.buttons button {
   padding: 9px 18px;
   font: inherit;
   font-size: 13px;
@@ -70,8 +75,8 @@ canvas {
     border-color 0.4s;
 }
 
-#new-journey:hover,
-#new-journey:focus-visible {
+.buttons button:hover,
+.buttons button:focus-visible {
   opacity: 1;
   border-color: rgba(242, 234, 216, 0.5);
   outline: none;
@@ -102,7 +107,7 @@ canvas {
 @media (prefers-reduced-motion: reduce) {
   #journey-label,
   #station-label,
-  #new-journey {
+  .buttons button {
     transition: none;
   }
 }

@@ -42,11 +42,13 @@ While developing, in `main.js`:
 - **Snow:** drifting, swaying flakes, settled snow on the ground, and snow caps on the mountain peaks.
 - **Fog:** banks of fog lying at every distance, even between the train and the camera, drifting slowly. Stars disappear, the moon blurs, and every lamp glows twice as wide.
 
-**Tunnels.** A journey passes through two to four landscapes, each about half a kilometre of line, and loops when it reaches the end. Each landscape ends at a hill with a stone tunnel mouth. The train drives into the arch and the hill closes over it; once half the train is inside, the camera follows it in and the screen goes dark, with only the train's lights and the lamps on the tunnel wall showing. The next landscape is built in the dark, and the train comes out of a hillside into it. **New journey** fades the whole frame to black and the new train comes out of a tunnel into a different ride.
+**Tunnels.** A journey passes through two to four landscapes, each about half a kilometre of line, and loops when it reaches the end. Each landscape ends at a hill with a stone tunnel mouth. The train drives into the arch and the hill closes over it; once half the train is inside, the camera follows it in and the screen goes dark, with only the train's lights and the lamps on the tunnel wall showing. The next landscape is built in the dark, and the train comes out of a hillside into it. **New journey** fades the whole frame to black and the new train is found standing at a station, ready to leave on a different ride.
 
 **Stations.** Half of all landscapes have a country station on the far side of the line: a platform with a canopy and lamps, a station building with its name, people waiting, name boards at each end and a semaphore signal. The train brakes, stops with its whole length alongside the platform, waits twelve seconds with the signal at red, then the signal drops to green and the train pulls away. The station's name shows under the journey's name while it stops. While it stands there, some passengers get off and people from the platform get on, one at a time, so compartments light up and empty, and the people who got off are left on the platform as it leaves.
 
 Every journey, including one started with New journey, begins with the train standing at a station, ready to leave.
+
+**Sound.** Press **Sound** to hear it; browsers only allow sound after a click, so it starts off. Every sound is made in the browser, with no recordings: the chuff of the chimney in time with the wheels, heavy at a standstill and quick at speed; the clickety-clack of each axle crossing a rail joint; brake squeal as the train comes to a stop; steam hissing while it stands; doors as passengers get on and off; the whistle when leaving a station, braking for one and before a tunnel; wind in gusts, and rain in the rain. Inside a tunnel the outside sounds fade and the train echoes off the walls. Each sound comes from the side of the screen it happens on.
 
 **Seeded journeys.** A journey is a number. The same number always produces the same biome sequence, landscapes, weather, time and train, which is what will make journeys shareable by link.
 
@@ -75,6 +77,7 @@ Every journey, including one started with New journey, begins with the train sta
 | `js/atmosphere.js` | Haze with distance, the air for each weather, and fog banks |
 | `js/weather.js` | Rain and snow |
 | `js/timeline.js` | The order of landscapes, stations and tunnels along a journey |
+| `js/sound.js` | Every sound, made in the browser with the Web Audio API |
 | `main.js` | Speed, the frame loop and the order things are drawn in |
 
 - **Everything is measured in metres.** The camera stands 12 metres from the track and 6 metres up. Something `z` metres away is drawn `focal / z` pixels per metre and slides past at the same rate, so size and speed always agree. A fence post is 1.3 m, a telegraph pole 8 m, a pine 15 to 27 m, and they all look right next to the train because none of them is sized by hand. The ground follows the same rule: flat ground `z` metres away sits `height × focal / z` pixels below the horizon, which is why the sleepers narrow towards the far rail and the furrows all point at one spot on the horizon.
@@ -95,6 +98,7 @@ Every journey, including one started with New journey, begins with the train sta
 - **The train in metres.** Before the train is drawn, the canvas is moved to its left end at rail height and scaled so one unit is one metre, so the train is measured the same way as the world around it.
 - **Smoke follows the wheels.** A puff leaves the chimney every quarter turn of the driving wheels. Once out, the smoke stays where it is while the train moves on, so it trails back along the train as it rises and spreads.
 - **Journey timeline.** Each landscape is a stretch of line in metres, from one tunnel to the next, with a station halfway along if it has one. The new landscape is built halfway through the tunnel, while the screen is dark, with its exit placed just ahead of the locomotive, so the swap is never seen.
+- **Sound from noise and tones.** Every sound starts as noise (random values) or a plain tone. A filter turns noise into wind (only the low part kept), rain (the middle), steam (the high part) or a knock (a short burst). Steady sounds loop for ever and only their volume changes each frame; short ones are started at the moment they happen. The tunnel echo plays every train sound through a burst of fading noise, which is how a hard-walled space blurs a sound.
 - **Journey names.** Each journey's name is built from its departure time, its landscapes and its weather. The name has its own seeded random stream, so naming a journey never changes the journey.
 - **Fits any screen.** The camera is sized to the window, so a resize only needs a new camera. On a narrow screen the locomotive stays in view while the tail runs off the edge.
 
@@ -107,7 +111,7 @@ The first version is in the git history (canvas, layers, seeded journeys, five l
 - [x] **Rebuild 3.** The train rebuilt: real proportions, spoked wheels with rods that move like real ones, liveries, firebox glow, window light on the ground, smoke
 - [x] **Rebuild 4.** The five landscapes rebuilt on the new system, with fog as a fourth weather and haze with distance
 - [x] **Rebuild 5.** Braking and stations, and real tunnels with portals the train disappears into
-- [ ] **Rebuild 6.** Sound made in the browser: puffs timed to the wheels, rail joints, brakes, the whistle, echo in tunnels, rain and wind
+- [x] **Rebuild 6.** Sound made in the browser: puffs timed to the wheels, rail joints, brakes, the whistle, echo in tunnels, rain and wind
 - [ ] **Rebuild 7.** Performance, mobile, journeys shared by link, a new preview image
 
 ## Palette

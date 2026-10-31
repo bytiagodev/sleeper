@@ -10,6 +10,8 @@ const crankRadius = 0.38;
 const connectingRodLength = 1.3;
 const crossheadY = -1.05;
 const chimneyX = 10.12;
+const leadingWheelXs = [9.55, 10.45];
+const tenderWheelXs = [1.1, 3.3, 5.5];
 const chimneyTop = -4.12;
 
 const cabTop = -4.2;
@@ -31,7 +33,7 @@ function drawLocomotive(pixel) {
   ctx.fillRect(0.1, -0.55, 0.35, 0.1);
   ctx.fillRect(0.25, -0.9, 0.06, 0.45);
 
-  for (const wheelX of [9.55, 10.45]) drawWheel(wheelX, -0.45, 0.45, 10, pixel);
+  for (const wheelX of leadingWheelXs) drawWheel(wheelX, -0.45, 0.45, 10, pixel);
   for (const wheelX of driverXs) drawWheel(wheelX, driverY, driverRadius, 16, pixel, true);
   drawRods(pixel);
   drawCylinder(pixel);
@@ -300,7 +302,7 @@ function drawHeadlampBeam(lampX, lampY) {
 }
 
 function drawTender(pixel) {
-  for (const wheelX of [1.1, 3.3, 5.5]) {
+  for (const wheelX of tenderWheelXs) {
     drawWheel(wheelX, -0.5, 0.5, 10, pixel);
     ctx.fillStyle = "#191b26";
     ctx.fillRect(wheelX - 0.18, -0.85, 0.36, 0.28);

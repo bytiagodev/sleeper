@@ -33,7 +33,10 @@
       <p id="journey-label" class="is-hidden" aria-live="polite"></p>
       <p id="station-label" class="is-hidden" aria-live="polite"></p>
     </div>
-    <button id="new-journey" type="button">New journey</button>
+    <div class="buttons">
+      <button id="sound-toggle" type="button" aria-pressed="false">Sound: off</button>
+      <button id="new-journey" type="button">New journey</button>
+    </div>
   </div>
   <!-- Plain scripts in order, not modules, so the page also runs when
        opened straight from disk. Later files use what earlier ones define. -->
@@ -61,6 +64,7 @@
   <script src="js/smoke.js"></script>
   <script src="js/weather.js"></script>
   <script src="js/timeline.js"></script>
+  <script src="js/sound.js"></script>
   <script src="main.js"></script>
 </body>
 </html>

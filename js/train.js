@@ -33,6 +33,21 @@ function getLocomotive() {
   return trainVehicles[trainVehicles.length - 1];
 }
 
+// Where every axle is, in metres from the back of the train. Used for the
+// click each wheel makes as it rolls over a joint in the rail.
+function getAxleXs() {
+  const axles = [];
+  for (const vehicle of trainVehicles) {
+    let wheelXs = [...leadingWheelXs, ...driverXs];
+    if (vehicle.kind === "tender") wheelXs = tenderWheelXs;
+    if (vehicle.kind === "carriage") {
+      wheelXs = getBogieXs(vehicle.length).flatMap((bogieX) => [bogieX - axleSpacing / 2, bogieX + axleSpacing / 2]);
+    }
+    for (const wheelX of wheelXs) axles.push(vehicle.x + wheelX);
+  }
+  return axles;
+}
+
 function getTrainLayout() {
   const locomotive = getLocomotive();
   const trainLength = locomotive.x + locomotive.length;

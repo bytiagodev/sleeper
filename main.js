@@ -26,6 +26,7 @@ function loop(currentTime) {
   updateSmoke(dt);
   updateWeather(dt);
   updateTimeline(dt);
+  updateSound(dt);
   draw();
 
   requestAnimationFrame(loop);
@@ -80,6 +81,8 @@ resize();
 startJourney(randomSeed());
 showJourneyLabel();
 if (prefersReducedMotion) {
+  // A still frame has nothing happening to hear.
+  soundButton.hidden = true;
   draw();
 } else {
   requestAnimationFrame(loop);
