@@ -18,6 +18,8 @@
 const sound = {
   context: null,
   on: false,
+  paused: false,
+  listenerVolume: 1,
   distanceSinceChuff: 0,
   chuffCount: 0,
   axleJoints: [],
@@ -90,7 +92,13 @@ function startSound() {
   limiter.ratio.value = 20;
   limiter.attack.value = 0.001;
   limiter.release.value = 0.1;
-  compressor.connect(sound.output).connect(limiter).connect(context.destination);
+  // Two last volume controls: the listener's own setting, and the slow fade
+  // of the sleep timer. Kept apart so that one never undoes the other.
+  sound.volume = context.createGain();
+  sound.volume.gain.value = sound.listenerVolume * sound.listenerVolume;
+  sound.sleepFade = context.createGain();
+  compressor.connect(sound.output).connect(limiter).connect(sound.volume).connect(sound.sleepFade);
+  sound.sleepFade.connect(context.destination);
 
   sound.master = context.createGain();
   sound.master.gain.value = 1;
@@ -348,7 +356,7 @@ function getEnclosure() {
 }
 
 function updateSound(dt) {
-  if (!sound.on) return;
+  if (!sound.on || sound.paused) return;
   const now = sound.context.currentTime;
   // Darkness is where the camera is, and so where we listen from. Enclosure
   // is where the engine is.
@@ -475,14 +483,43 @@ function setSoundOn(on) {
   if (on) sound.context.resume();
   else if (sound.context) sound.context.suspend();
   soundButton.textContent = on ? "Sound: on" : "Sound: off";
-  soundButton.setAttribute("aria-pressed", String(on));
 }
 
-soundButton.addEventListener("click", () => setSoundOn(!sound.on));
+// The volume slider runs from 0 to 1. It is squared, because loudness is
+// heard in ratios: that way halfway sounds about half as loud, instead of
+// barely quieter than full.
+function setListenerVolume(share) {
+  sound.listenerVolume = share;
+  if (!sound.context) return;
+  sound.volume.gain.setTargetAtTime(share * share, sound.context.currentTime, 0.05);
+}
+
+function fadeSoundForSleep(target, seconds) {
+  if (!sound.context) return;
+  const now = sound.context.currentTime;
+  const fade = sound.sleepFade.gain;
+  fade.cancelScheduledValues(now);
+  fade.setValueAtTime(fade.value, now);
+  fade.linearRampToValueAtTime(target, now + seconds);
+}
+
+// While the scene sleeps, sound stops completely rather than just going
+// quiet. Otherwise every chuff of the night would be waiting to play the
+// moment it wakes.
+function setSoundPaused(paused) {
+  sound.paused = paused;
+  if (!sound.context || !sound.on) return;
+  if (paused) {
+    sound.context.suspend();
+  } else {
+    catchUpSound();
+    sound.context.resume();
+  }
+}
 
 // Silent while the tab is hidden, back when it is shown again.
 document.addEventListener("visibilitychange", () => {
-  if (!sound.context || !sound.on) return;
+  if (!sound.context || !sound.on || sound.paused) return;
   if (document.hidden) sound.context.suspend();
   else sound.context.resume();
 });

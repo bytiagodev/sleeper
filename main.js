@@ -55,7 +55,10 @@ function loop(currentTime) {
   updateWeather(dt);
   updateTimeline(dt);
   updateSound(dt);
-  draw();
+  updateSleep();
+  // Asleep, the screen is already dark: drawing would only keep the
+  // computer busy.
+  if (sleep.state !== "asleep") draw();
   checkSpeed(dt);
 
   requestAnimationFrame(loop);

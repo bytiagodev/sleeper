@@ -28,15 +28,35 @@
 </head>
 <body>
   <canvas id="scene" role="img" aria-label="A lit night train crossing a generated landscape"></canvas>
+  <div id="sleep-veil" class="sleep-veil" aria-hidden="true"></div>
   <div class="chrome">
     <div class="labels">
       <p id="journey-label" class="is-hidden" aria-live="polite"></p>
       <p id="station-label" class="is-hidden" aria-live="polite"></p>
     </div>
     <div class="buttons">
-      <button id="sound-toggle" type="button" aria-pressed="false">Sound: off</button>
-      <button id="share" type="button">Share</button>
-      <button id="new-journey" type="button">New journey</button>
+      <div id="sound-control" class="sound-control">
+        <button id="sound-toggle" class="pill" type="button" aria-expanded="false" aria-controls="sound-panel">Sound: off</button>
+        <div id="sound-panel" class="sound-panel">
+          <div class="panel-row">
+            <label class="panel-label" for="volume">Volume</label>
+            <input id="volume" type="range" min="0" max="100" step="1" value="100">
+          </div>
+          <div class="panel-row" role="group" aria-labelledby="sleep-label">
+            <span id="sleep-label" class="panel-label">Sleep</span>
+            <div class="choices">
+              <button type="button" data-sleep-minutes="0" aria-pressed="true">Off</button>
+              <button type="button" data-sleep-minutes="15" aria-pressed="false" aria-label="15 minutes">15m</button>
+              <button type="button" data-sleep-minutes="30" aria-pressed="false" aria-label="30 minutes">30m</button>
+              <button type="button" data-sleep-minutes="60" aria-pressed="false" aria-label="1 hour">1h</button>
+            </div>
+            <p id="sleep-status" class="panel-note" aria-live="polite"></p>
+          </div>
+          <button id="sound-off" class="panel-quiet" type="button">Turn sound off</button>
+        </div>
+      </div>
+      <button id="share" class="pill" type="button">Share</button>
+      <button id="new-journey" class="pill" type="button">New journey</button>
     </div>
   </div>
   <!-- Plain scripts in order, not modules, so the page also runs when
@@ -66,6 +86,8 @@
   <script src="js/weather.js"></script>
   <script src="js/timeline.js"></script>
   <script src="js/sound.js"></script>
+  <script src="js/sleep.js"></script>
+  <script src="js/controls.js"></script>
   <script src="main.js"></script>
 </body>
 </html>

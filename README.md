@@ -16,7 +16,7 @@ Half the landscapes have a station, with a brick building, a clock set to the de
 
 ## The timetable
 
-A journey is a single number. The same number always gives the same landscapes, weather, train, stations and passengers, so a journey can be shared as a link: `?journey=4242` is always the same ride. **Share** copies it, **New journey** starts another, and **Sound** turns on the chuffs, the rail joints, the brakes, the doors and the whistle.
+A journey is a single number. The same number always gives the same landscapes, weather, train, stations and passengers, so a journey can be shared as a link: `?journey=4242` is always the same ride. **Share** copies it, **New journey** starts another, and **Sound** turns on the chuffs, the rail joints, the brakes, the doors and the whistle. It also opens a small panel with the volume and a sleep timer, which fades the sound and darkens the screen after 15 minutes, half an hour or an hour, while the train carries on. The buttons step aside a few seconds after the mouse stops.
 
 ## The engine room
 

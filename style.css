@@ -62,8 +62,23 @@ canvas {
   gap: 10px;
 }
 
+.buttons {
+  transition: opacity 0.8s ease;
+}
+
+/* A few seconds after the mouse stops, the buttons and the pointer step
+   aside and leave only the scene. */
+body.is-idle {
+  cursor: none;
+}
+
+body.is-idle .buttons {
+  opacity: 0;
+  pointer-events: none;
+}
+
 /* Quiet until you reach for it: half visible at rest, full on hover. */
-.buttons button {
+.pill {
   padding: 9px 18px;
   font: inherit;
   font-size: 13px;
@@ -81,8 +96,9 @@ canvas {
     border-color 0.4s;
 }
 
-.buttons button:hover,
-.buttons button:focus-visible {
+.pill:hover,
+.pill:focus-visible,
+.pill[aria-expanded="true"] {
   opacity: 1;
   border-color: rgba(242, 234, 216, 0.5);
   outline: none;
@@ -126,16 +142,221 @@ canvas {
     font-size: 10px;
   }
 
-  .buttons button {
+  .pill {
     padding: 6px 12px;
     font-size: 11px;
   }
 }
 
+/* The sound panel opens upwards from the Sound button, in the same dark
+   glass and cream as the buttons, with the station label's amber for
+   whatever is chosen. */
+.sound-control {
+  position: relative;
+}
+
+.sound-panel {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 12px);
+  width: 248px;
+  display: grid;
+  gap: 16px;
+  padding: 16px 16px 12px;
+  color: #f2ead8;
+  background: rgba(9, 11, 24, 0.86);
+  border: 1px solid rgba(242, 234, 216, 0.18);
+  border-radius: 18px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(10px);
+  pointer-events: auto;
+  opacity: 0;
+  transform: translateY(6px);
+  visibility: hidden;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease,
+    visibility 0s 0.2s;
+}
+
+.sound-panel.is-open {
+  opacity: 1;
+  transform: none;
+  visibility: visible;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+
+.panel-row {
+  display: grid;
+  gap: 8px;
+}
+
+.panel-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(242, 234, 216, 0.55);
+}
+
+/* The slider: a thin cream line, amber up to the volume, and a round thumb.
+   --fill is set from controls.js as the volume changes. */
+#volume {
+  --fill: 100%;
+  width: 100%;
+  height: 18px;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+#volume::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(to right, #ffd28c var(--fill), rgba(242, 234, 216, 0.18) var(--fill));
+}
+
+#volume::-webkit-slider-thumb {
+  width: 14px;
+  height: 14px;
+  margin-top: -5px;
+  border-radius: 50%;
+  background: #f2ead8;
+  box-shadow: 0 0 0 4px rgba(255, 210, 140, 0.15);
+  -webkit-appearance: none;
+}
+
+#volume::-moz-range-track {
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(242, 234, 216, 0.18);
+}
+
+#volume::-moz-range-progress {
+  height: 4px;
+  border-radius: 2px;
+  background: #ffd28c;
+}
+
+#volume::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: none;
+  border-radius: 50%;
+  background: #f2ead8;
+}
+
+#volume:focus-visible {
+  outline: none;
+}
+
+#volume:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 4px rgba(255, 210, 140, 0.5);
+}
+
+#volume:focus-visible::-moz-range-thumb {
+  box-shadow: 0 0 0 4px rgba(255, 210, 140, 0.5);
+}
+
+.choices {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.choices button {
+  padding: 6px 0;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(242, 234, 216, 0.7);
+  background: transparent;
+  border: 1px solid rgba(242, 234, 216, 0.18);
+  border-radius: 999px;
+  cursor: pointer;
+  transition:
+    color 0.2s,
+    border-color 0.2s,
+    background 0.2s;
+}
+
+.choices button:hover,
+.choices button:focus-visible {
+  color: #f2ead8;
+  border-color: rgba(242, 234, 216, 0.45);
+  outline: none;
+}
+
+.choices button[aria-pressed="true"] {
+  color: #ffd28c;
+  background: rgba(255, 210, 140, 0.12);
+  border-color: rgba(255, 210, 140, 0.55);
+}
+
+.panel-note {
+  font-size: 12px;
+  color: rgba(255, 210, 140, 0.75);
+}
+
+.panel-note:empty {
+  display: none;
+}
+
+.panel-quiet {
+  justify-self: start;
+  padding: 2px 0;
+  font: inherit;
+  font-size: 12px;
+  color: rgba(242, 234, 216, 0.5);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.panel-quiet:hover,
+.panel-quiet:focus-visible {
+  color: #f2ead8;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  outline: none;
+}
+
+/* What the sleep timer darkens the scene with. It comes up slowly and lifts
+   quickly. */
+.sleep-veil {
+  position: fixed;
+  inset: 0;
+  background: #020309;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 1.5s ease;
+}
+
+.sleep-veil.is-asleep {
+  opacity: 0.97;
+  transition: opacity 30s ease-in;
+}
+
+/* The labels sit above the veil, so they fade out with it. */
+.labels {
+  transition: opacity 1.5s ease;
+}
+
+.sleep-veil.is-asleep ~ .chrome .labels {
+  opacity: 0;
+  transition: opacity 30s ease-in;
+}
+
 @media (prefers-reduced-motion: reduce) {
   #journey-label,
   #station-label,
-  .buttons button {
+  .pill,
+  .buttons,
+  .sound-panel {
     transition: none;
   }
 }
