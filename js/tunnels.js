@@ -53,6 +53,7 @@ function createTunnelLayers(mouthX, direction, seed) {
   const hillLayer = {
     z: hillFrontZ,
     draw() {
+      if (!isHillOnScreen(mouthX, direction)) return;
       drawHillside(mouthX, direction, seed, hillColor);
       const faceIsVisible = (mouthX - travelled) * direction > 0;
       if (faceIsVisible) {
@@ -63,6 +64,17 @@ function createTunnelLayers(mouthX, direction, seed) {
   };
 
   return [wingWallLayer, hillLayer];
+}
+
+// The hill runs from its mouth away in `direction`. It is off screen while
+// its mouth, at every distance from the front to the crest, is past the
+// edge it runs away from. The margin leaves room for trees on the crest.
+function isHillOnScreen(mouthX, direction) {
+  const margin = 5 * scaleAt(hillCrestZ);
+  const mouthNear = screenXAt(mouthX, hillFrontZ);
+  const mouthFar = screenXAt(mouthX, hillCrestZ);
+  if (direction > 0) return Math.min(mouthNear, mouthFar) < window.innerWidth + margin;
+  return Math.max(mouthNear, mouthFar) > -margin;
 }
 
 // The face, drawn flat as if seen straight on. Across the image is the

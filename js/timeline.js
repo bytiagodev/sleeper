@@ -86,6 +86,7 @@ function startJourney(seed, secondsInDark = 0) {
   weatherBands = createWeatherBands();
   buildSky();
   showDepartureStation(secondsInDark);
+  updateLink();
 }
 
 function enterTunnel(nextSeed) {
