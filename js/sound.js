@@ -28,8 +28,19 @@ const sound = {
 
 const soundButton = document.getElementById("sound-toggle");
 
-const windByWeather = { clear: 0.05, rain: 0.08, snow: 0.1, fog: 0.04 };
-const rainVolume = 0.07;
+const windByWeather = { clear: 0.08, rain: 0.11, snow: 0.14, fog: 0.06 };
+const rainVolume = 0.1;
+const rumbleVolume = 0.5;
+const wheelBodyVolume = 0.1;
+const steamVolume = 0.05;
+const chuffVolume = 7.5;
+const railClickVolume = 3.5;
+// A standing engine still simmers: its firebox burns and its boiler ticks.
+const idleWheelBodyShare = 0.2;
+// The level of the whole mix after the compressor, measured to sit near
+// -21 dBFS while cruising. Below 1 because the browser's compressors already
+// raise their output to make up for what they turn down.
+const outputGain = 0.8;
 // Three notes sounded together, like the chime whistles on many engines.
 const whistleNotes = [392, 494, 587];
 const tunnelWhistleDistance = 80;
@@ -39,9 +50,30 @@ function startSound() {
   sound.context = context;
   sound.noise = createNoiseBuffer(context, 2);
 
+  // Everything passes through a compressor on its way to the speakers. It
+  // turns the loudest moments down, so the whole mix can sit higher and the
+  // quiet beds can be heard without a chuff or the whistle turning harsh.
+  const compressor = context.createDynamicsCompressor();
+  compressor.threshold.value = -24;
+  compressor.knee.value = 12;
+  compressor.ratio.value = 3;
+  compressor.attack.value = 0.01;
+  compressor.release.value = 0.3;
+  sound.output = context.createGain();
+  sound.output.gain.value = outputGain;
+  // A last, much harder compressor that only acts on the rare peak that
+  // would otherwise clip, such as hard chuffs as the train pulls away.
+  const limiter = context.createDynamicsCompressor();
+  limiter.threshold.value = -6;
+  limiter.knee.value = 0;
+  limiter.ratio.value = 20;
+  limiter.attack.value = 0.001;
+  limiter.release.value = 0.1;
+  compressor.connect(sound.output).connect(limiter).connect(context.destination);
+
   sound.master = context.createGain();
   sound.master.gain.value = 1;
-  sound.master.connect(context.destination);
+  sound.master.connect(compressor);
 
   // Sounds of the train go through trainBus. Inside a tunnel some of it
   // also goes through an echo, and comes back blurred and late off the
@@ -57,7 +89,14 @@ function startSound() {
 
   sound.wind = createNoiseBed("lowpass", 500, 0.7, sound.master);
   sound.rain = createNoiseBed("bandpass", 3000, 0.5, sound.master);
-  sound.rumble = createNoiseBed("lowpass", 120, 0.7, sound.trainBus);
+  sound.rumble = createNoiseBed("lowpass", 140, 0.7, sound.trainBus);
+  // Laptop and phone speakers barely play below 200 Hz, where the rumble
+  // lives. This higher band of it, the body of the wheels on the rails, is
+  // what carries the train on small speakers. It swells a little each time
+  // a wheel crosses a rail joint.
+  sound.wheelSwell = context.createGain();
+  sound.wheelSwell.connect(sound.trainBus);
+  sound.wheelBody = createNoiseBed("bandpass", 300, 0.9, sound.wheelSwell);
   sound.steam = createNoiseBed("highpass", 4000, 0.7, sound.trainBus);
   sound.squeal = createToneBed([2900, 3170], sound.trainBus);
 }
@@ -164,15 +203,24 @@ function getChimneyWorldX() {
 function playChuff() {
   const effort = 1 - 0.5 * Math.min(1, motion.speed / cruiseSpeed);
   const chimney = getChimneyWorldX();
-  playNoiseBurst(chimney, "bandpass", 600, 0.8, 1.2 * effort, 0.2);
-  playNoiseBurst(chimney, "lowpass", 160, 0.7, 0.6 * effort, 0.15);
+  playNoiseBurst(chimney, "bandpass", 600, 0.8, chuffVolume * effort, 0.14);
+  playNoiseBurst(chimney, "lowpass", 160, 0.7, chuffVolume * 0.5 * effort, 0.1);
 }
 
 // The clack of a wheel dropping over the small gap between two rails.
 function playRailClick(worldX) {
   const loudness = Math.min(1, motion.speed / 4);
-  playNoiseBurst(worldX, "bandpass", 1800, 3, 0.14 * loudness, 0.05);
-  playNoiseBurst(worldX, "lowpass", 220, 0.7, 0.2 * loudness, 0.08);
+  playNoiseBurst(worldX, "bandpass", 1800, 3, 0.14 * railClickVolume * loudness, 0.05);
+  playNoiseBurst(worldX, "lowpass", 220, 0.7, 0.2 * railClickVolume * loudness, 0.08);
+  swellWheels(0.35 * loudness);
+}
+
+function swellWheels(strength) {
+  const now = sound.context.currentTime;
+  const swell = sound.wheelSwell.gain;
+  swell.cancelScheduledValues(now);
+  swell.setValueAtTime(1 + strength, now);
+  swell.setTargetAtTime(1, now, 0.08);
 }
 
 function playDoor(worldX) {
@@ -230,8 +278,9 @@ function updateSound(dt) {
   setVolume(sound.rain, activeWeather === "rain" ? rainVolume * outside : 0);
 
   // Wheels rumble louder in the confined space of a tunnel.
-  setVolume(sound.rumble, 0.5 * speedShare * (1 + darkness));
-  setVolume(sound.steam, motion.state === "stopped" ? 0.03 : 0);
+  setVolume(sound.rumble, rumbleVolume * speedShare * (1 + darkness));
+  setVolume(sound.wheelBody, wheelBodyVolume * Math.max(idleWheelBodyShare, speedShare) * (1 + darkness * 0.5));
+  setVolume(sound.steam, motion.state === "stopped" ? steamVolume : 0);
   const squealing = motion.state === "braking" && motion.speed < 3;
   setVolume(sound.squeal, squealing ? 0.012 * (1 - motion.speed / 3) + 0.004 : 0);
   sound.echoVolume.gain.setTargetAtTime(darkness * 0.6, sound.context.currentTime, 0.3);
