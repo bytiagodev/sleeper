@@ -19,6 +19,7 @@ const sound = {
   context: null,
   on: false,
   distanceSinceChuff: 0,
+  chuffCount: 0,
   axleJoints: [],
   trainOfAxles: null,
   previousState: null,
@@ -34,7 +35,13 @@ const rumbleVolume = 0.5;
 const wheelBodyVolume = 0.1;
 const steamVolume = 0.05;
 const chuffVolume = 7.5;
+// The four exhausts in each turn of the wheels are never equally strong on
+// a real engine, because its two sides are never set up quite the same.
+// Repeating a slightly uneven pattern gives the chuffs their lilt.
+const chuffAccents = [1, 0.7, 0.9, 0.6];
 const railClickVolume = 3.5;
+const railKnockVolume = 0.12;
+const railRingVolume = 0.015;
 // A standing engine still simmers: its firebox burns and its boiler ticks.
 const idleWheelBodyShare = 0.2;
 // The level of the whole mix after the compressor, measured to sit near
@@ -174,6 +181,24 @@ function sendToTrainBus(node, worldX) {
   node.connect(panner).connect(sound.trainBus);
 }
 
+// A short note that starts sharply, slides from one pitch to another and
+// dies away.
+function playToneBurst(worldX, fromFrequency, toFrequency, volume, seconds) {
+  const context = sound.context;
+  const now = context.currentTime;
+  const tone = context.createOscillator();
+  tone.frequency.setValueAtTime(fromFrequency, now);
+  tone.frequency.exponentialRampToValueAtTime(toFrequency, now + seconds);
+  const envelope = context.createGain();
+  envelope.gain.setValueAtTime(0, now);
+  envelope.gain.linearRampToValueAtTime(volume, now + 0.003);
+  envelope.gain.exponentialRampToValueAtTime(0.0001, now + seconds);
+  tone.connect(envelope);
+  sendToTrainBus(envelope, worldX);
+  tone.start(now);
+  tone.stop(now + seconds + 0.05);
+}
+
 // A short burst of filtered noise that starts sharply and dies away.
 function playNoiseBurst(worldX, filterType, frequency, q, volume, seconds) {
   const context = sound.context;
@@ -202,16 +227,28 @@ function getChimneyWorldX() {
 // working hard to get going, so each chuff is heavier.
 function playChuff() {
   const effort = 1 - 0.5 * Math.min(1, motion.speed / cruiseSpeed);
+  const accent = chuffAccents[sound.chuffCount % chuffAccents.length];
+  sound.chuffCount++;
+  const strength = chuffVolume * effort * accent;
   const chimney = getChimneyWorldX();
-  playNoiseBurst(chimney, "bandpass", 600, 0.8, chuffVolume * effort, 0.14);
-  playNoiseBurst(chimney, "lowpass", 160, 0.7, chuffVolume * 0.5 * effort, 0.1);
+  playNoiseBurst(chimney, "bandpass", 600, 0.8, strength, 0.14);
+  playNoiseBurst(chimney, "lowpass", 160, 0.7, strength * 0.5, 0.1);
 }
 
-// The clack of a wheel dropping over the small gap between two rails.
+// The clack of a wheel dropping over the small gap between two rails: the
+// noise of the impact, a knock that drops in pitch as the weight of the
+// wheel lands, and a faint ring from the steel. Every wheel hits a little
+// differently.
 function playRailClick(worldX) {
-  const loudness = Math.min(1, motion.speed / 4);
+  const loudness = Math.min(1, motion.speed / 4) * (0.85 + Math.random() * 0.3);
   playNoiseBurst(worldX, "bandpass", 1800, 3, 0.14 * railClickVolume * loudness, 0.05);
   playNoiseBurst(worldX, "lowpass", 220, 0.7, 0.2 * railClickVolume * loudness, 0.08);
+  playToneBurst(worldX, 210, 110, railKnockVolume * loudness, 0.09);
+  // Two pitches that don't belong to the same note sound like struck metal
+  // rather than like music.
+  const pitch = 0.97 + Math.random() * 0.06;
+  playToneBurst(worldX, 1130 * pitch, 1120 * pitch, railRingVolume * loudness, 0.14);
+  playToneBurst(worldX, 1740 * pitch, 1730 * pitch, railRingVolume * 0.7 * loudness, 0.11);
   swellWheels(0.35 * loudness);
 }
 
