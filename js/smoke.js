@@ -40,6 +40,19 @@ function releasePuff() {
   puff.riseSpeed = 2 + smokeRandom() * 1.2;
   puff.size = 0.9 + smokeRandom() * 0.5;
   puff.sprite = puffSprites[Math.floor(smokeRandom() * puffSprites.length)];
+  puff.tunnelX = null;
+
+  // Once the chimney is inside, the smoke has nowhere to go but back out of
+  // the mouth, where it rolls up the stone face, thick and slow.
+  const tunnelX = segment.tunnelX;
+  const chimneyIsInside = getTrainTailX() + locomotive.x + chimneyX > tunnelX;
+  if (chimneyIsInside) {
+    puff.tunnelX = tunnelX;
+    puff.x = tunnelX - getTrainTailX() - smokeRandom() * 0.8;
+    puff.y = -(archSpringHeight + archHalfWidth) + 0.5 + smokeRandom() * 0.4;
+    puff.riseSpeed = 1 + smokeRandom() * 0.8;
+    puff.size = 1.6 + smokeRandom() * 0.8;
+  }
 }
 
 function updateSmoke(dt) {
@@ -64,7 +77,10 @@ function updateSmoke(dt) {
   for (const puff of puffs) {
     if (!puff.alive) continue;
     puff.age += dt;
-    if (puff.age > puff.lifetime) {
+    // Smoke from a tunnel mouth that is no longer there, after the next
+    // landscape has been built in the dark.
+    const tunnelIsGone = puff.tunnelX !== null && puff.tunnelX !== segment.tunnelX;
+    if (puff.age > puff.lifetime || tunnelIsGone) {
       puff.alive = false;
       continue;
     }
@@ -77,13 +93,23 @@ function updateSmoke(dt) {
   }
 }
 
-function drawSmoke() {
+// Smoke from the chimney is drawn with the train. Smoke from a tunnel mouth
+// is drawn later, over the hill and the stone face.
+function drawSmoke(fromTunnelMouth) {
   ctx.save();
   for (const puff of puffs) {
     if (!puff.alive) continue;
+    if ((puff.tunnelX !== null) !== fromTunnelMouth) continue;
     const progress = puff.age / puff.lifetime;
     ctx.globalAlpha = 0.3 * (1 - progress) * Math.min(1, puff.age * 6);
     ctx.drawImage(puff.sprite, puff.x - puff.size / 2, puff.y - puff.size / 2, puff.size, puff.size);
   }
+  ctx.restore();
+}
+
+function drawSmokeFromTunnelMouth() {
+  ctx.save();
+  moveToTrain(getTrainLayout());
+  drawSmoke(true);
   ctx.restore();
 }

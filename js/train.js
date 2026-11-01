@@ -113,7 +113,7 @@ function drawTrain() {
   });
   drawCouplings(layout.pixel);
   drawTailLamp();
-  drawSmoke();
+  drawSmoke(false);
   ctx.restore();
 }
 

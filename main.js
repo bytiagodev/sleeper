@@ -73,6 +73,7 @@ function draw() {
   for (const layer of layers) {
     if (layer.z < camera.trackZ) layer.draw();
   }
+  drawSmokeFromTunnelMouth();
   drawWeather(true);
   drawTunnel();
   drawFinish();

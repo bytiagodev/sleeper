@@ -66,6 +66,7 @@ function createTunnelLayers(mouthX, direction, seed) {
       if (faceIsVisible()) {
         drawTunnelFace(face, mouthX, hillFrontZ, hillBackZ);
         drawBramblesOnFace(mouthX, seed);
+        if (direction > 0) drawHeadlampInArch(mouthX);
       }
     },
   };
@@ -213,6 +214,17 @@ function cutOpeningSeeThrough(face) {
   p.fill(opening);
   copy.isSeeThrough = true;
   return copy;
+}
+
+// The headlamps light up the inside of the arch as the engine runs at it,
+// starting from 40 m out.
+function drawHeadlampInArch(mouthX) {
+  const distance = mouthX - getTrainFrontX();
+  const nearness = 1 - Math.min(1, Math.max(0, distance) / 40);
+  if (nearness === 0) return;
+  const lining = projectPoint(mouthX, camera.trackZ + archHalfWidth / 2, archSpringHeight);
+  const radius = archHalfWidth * 1.6 * scaleAt(camera.trackZ);
+  drawGlow(lining.x, lining.y, radius, "255, 225, 170", 0.55 * nearness * nearness);
 }
 
 // Limits drawing to the screen beyond the point where the rails meet the
