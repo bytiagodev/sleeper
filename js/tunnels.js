@@ -36,6 +36,7 @@ function createTunnelLayers(mouthX, direction, seed) {
   if (!hillPattern) hillPattern = createHillPattern();
   const face = prerenderTunnelFace(seed);
   hazePrerendered(face, (hillFrontZ + hillBackZ) / 2);
+  const faceSeenThrough = cutOpeningSeeThrough(face);
   const wingWall = prerenderWingWall(seed, direction);
   hazePrerendered(wingWall, wingWallZ);
   const hillColor = hazed("#0b0d12", hillCrestZ);
@@ -50,20 +51,38 @@ function createTunnelLayers(mouthX, direction, seed) {
     },
   };
 
-  const hillLayer = {
-    z: hillFrontZ,
+  // The stone face crosses the track, so half of it stands behind the train
+  // and half in front. Behind the train goes the whole hill and face, with
+  // the dark bore of the tunnel. In front goes only what is nearer than the
+  // rails: the near half of the face, whose opening the train shows through
+  // as it goes in, and the hill that covers the train once it is inside.
+  const faceIsVisible = () => (mouthX - travelled) * direction > 0;
+
+  const behindTrainLayer = {
+    z: hillBackZ,
     draw() {
       if (!isHillOnScreen(mouthX, direction)) return;
       drawHillside(mouthX, direction, seed, hillColor);
-      const faceIsVisible = (mouthX - travelled) * direction > 0;
-      if (faceIsVisible) {
-        drawTunnelFace(face, mouthX);
+      if (faceIsVisible()) {
+        drawTunnelFace(face, mouthX, hillFrontZ, hillBackZ);
         drawBramblesOnFace(mouthX, seed);
       }
     },
   };
 
-  return [wingWallLayer, hillLayer];
+  const inFrontOfTrainLayer = {
+    z: hillFrontZ,
+    draw() {
+      if (!isHillOnScreen(mouthX, direction)) return;
+      ctx.save();
+      clipToInsideOfMouth(mouthX, direction);
+      drawHillside(mouthX, direction, seed, hillColor);
+      if (faceIsVisible()) drawTunnelFace(faceSeenThrough, mouthX, hillFrontZ, camera.trackZ);
+      ctx.restore();
+    },
+  };
+
+  return [wingWallLayer, behindTrainLayer, inFrontOfTrainLayer];
 }
 
 // The hill runs from its mouth away in `direction`. It is off screen while
@@ -163,6 +182,47 @@ function prerenderTunnelFace(seed) {
     p.fillStyle = light;
     p.fillRect(0, -faceHeight, width, faceHeight);
   });
+}
+
+// A copy of the face where the opening lets through what is behind it,
+// darkened, so the train stays visible as it passes into the bore.
+function cutOpeningSeeThrough(face) {
+  const copy = makeCanvas(face.width, face.height);
+  const p = copy.getContext("2d");
+  p.drawImage(face, 0, 0);
+  p.translate(0, copy.height);
+  p.scale(prerenderPixelsPerMetre, prerenderPixelsPerMetre);
+
+  const archCenter = camera.trackZ - hillFrontZ;
+  const opening = new Path2D();
+  opening.moveTo(archCenter - archHalfWidth, 0);
+  opening.lineTo(archCenter - archHalfWidth, -archSpringHeight);
+  opening.arc(archCenter, -archSpringHeight, archHalfWidth, Math.PI, 0);
+  opening.lineTo(archCenter + archHalfWidth, 0);
+  opening.closePath();
+
+  p.globalCompositeOperation = "destination-out";
+  p.fill(opening);
+
+  // Darkest at the jamb nearest the camera, where the train is deepest in.
+  p.globalCompositeOperation = "source-over";
+  const shadow = p.createLinearGradient(archCenter - archHalfWidth, 0, archCenter, 0);
+  shadow.addColorStop(0, "rgba(2, 2, 4, 0.9)");
+  shadow.addColorStop(1, "rgba(2, 2, 4, 0.55)");
+  p.fillStyle = shadow;
+  p.fill(opening);
+  copy.isSeeThrough = true;
+  return copy;
+}
+
+// Limits drawing to the screen beyond the point where the rails meet the
+// face: everything there that is nearer than the rails hides the train.
+function clipToInsideOfMouth(mouthX, direction) {
+  const mouthOnRails = screenXAt(mouthX, camera.trackZ);
+  ctx.beginPath();
+  if (direction > 0) ctx.rect(mouthOnRails, 0, window.innerWidth - mouthOnRails, window.innerHeight);
+  else ctx.rect(0, 0, mouthOnRails, window.innerHeight);
+  ctx.clip();
 }
 
 // The wing wall: a stone wall beside the line that holds back the hill. It
@@ -499,13 +559,16 @@ function traceRoundTree(path, x, baseY, height, random) {
 // The stone face, drawn in thin vertical strips. For each strip of screen
 // the face covers, work out which distance from the camera it shows, take
 // that column of the image, and stretch it to the right height.
-function drawTunnelFace(face, mouthX) {
+function drawTunnelFace(face, mouthX, nearestZ, furthestZ) {
   const nearX = screenXAt(mouthX, hillFrontZ);
   const farX = screenXAt(mouthX, hillBackZ);
   const fromX = Math.floor(Math.min(nearX, farX));
   const toX = Math.ceil(Math.max(nearX, farX));
   const stripWidth = 2;
   const metresAcross = hillBackZ - hillFrontZ;
+  // Solid strips overlap a little so no gap shows between them. Strips with
+  // see-through parts can't, or every overlap shows as a darker line.
+  const overlap = face.isSeeThrough ? 0 : 0.5;
 
   for (let screenX = fromX; screenX < toX; screenX += stripWidth) {
     // screenXAt the other way round: for a fixed point along the line, the
@@ -513,12 +576,12 @@ function drawTunnelFace(face, mouthX) {
     const offset = screenX + stripWidth / 2 - window.innerWidth / 2;
     if (offset === 0) continue;
     const z = ((mouthX - travelled) * camera.focal) / offset;
-    if (z < hillFrontZ || z > hillBackZ) continue;
+    if (z < nearestZ || z > furthestZ) continue;
 
     const column = ((z - hillFrontZ) / metresAcross) * face.width;
     const top = groundYAt(z) - faceHeight * scaleAt(z);
     const height = faceHeight * scaleAt(z);
-    ctx.drawImage(face, column, 0, 1, face.height, screenX, top, stripWidth + 0.5, height);
+    ctx.drawImage(face, column, 0, 1, face.height, screenX, top, stripWidth + overlap, height);
   }
 }
 
