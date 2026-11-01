@@ -24,6 +24,7 @@ const sound = {
   trainOfAxles: null,
   previousState: null,
   previousTunnelDistance: Infinity,
+  previousFrontX: null,
   doorsHeard: new Set(),
 };
 
@@ -50,7 +51,20 @@ const idleWheelBodyShare = 0.2;
 const outputGain = 0.8;
 // Three notes sounded together, like the chime whistles on many engines.
 const whistleNotes = [392, 494, 587];
+// Loud enough to ride over the train for a moment, as a real whistle does.
+// This is about as loud as the limiter allows, so to stand out further the
+// rest of the mix steps back to this share of its volume while it sounds.
+const whistleVolume = 0.45;
+const mixUnderWhistle = 0.55;
 const tunnelWhistleDistance = 80;
+// How far the engine runs into a tunnel, or out of one, before its sound
+// has fully changed.
+const enclosingDistance = 20;
+// The cutoff of the train's sound while it is inside a tunnel and heard
+// from outside: the walls swallow the high notes.
+const muffledFrequency = 1200;
+const openFrequency = 18000;
+const portalWhumpVolume = 1.4;
 
 function startSound() {
   const context = new AudioContext();
@@ -84,12 +98,15 @@ function startSound() {
 
   // Sounds of the train go through trainBus. Inside a tunnel some of it
   // also goes through an echo, and comes back blurred and late off the
-  // walls. Wind and rain go straight to the master, so a tunnel can fade
-  // them out.
+  // walls, and the rest is muffled while it is heard from outside. Wind
+  // and rain go straight to the master, so a tunnel can fade them out.
   sound.trainBus = context.createGain();
-  sound.trainBus.connect(sound.master);
+  sound.muffle = context.createBiquadFilter();
+  sound.muffle.type = "lowpass";
+  sound.muffle.frequency.value = openFrequency;
+  sound.trainBus.connect(sound.muffle).connect(sound.master);
   const echo = context.createConvolver();
-  echo.buffer = createEchoResponse(context, 2.5);
+  echo.buffer = createEchoResponse(context, 1.4);
   sound.echoVolume = context.createGain();
   sound.echoVolume.gain.value = 0;
   sound.trainBus.connect(echo).connect(sound.echoVolume).connect(sound.master);
@@ -119,14 +136,18 @@ function createNoiseBuffer(context, seconds) {
 
 // What a clap would sound like in a tunnel: noise that dies away. The
 // convolver plays this after every sound sent to it, which is an echo.
+// Brick and soot absorb the high notes, so each value leans on the one
+// before it, which smooths out the hiss and leaves a dark rumble.
 function createEchoResponse(context, seconds) {
   const length = context.sampleRate * seconds;
   const buffer = context.createBuffer(2, length, context.sampleRate);
   for (let channel = 0; channel < 2; channel++) {
     const samples = buffer.getChannelData(channel);
+    let smoothed = 0;
     for (let i = 0; i < length; i++) {
+      smoothed = smoothed * 0.85 + (Math.random() * 2 - 1) * 0.15;
       const fade = Math.pow(1 - i / length, 3);
-      samples[i] = (Math.random() * 2 - 1) * fade;
+      samples[i] = smoothed * fade;
     }
   }
   return buffer;
@@ -260,6 +281,14 @@ function swellWheels(strength) {
   swell.setTargetAtTime(1, now, 0.08);
 }
 
+// The thump of air the engine shoves ahead of it as it fills the mouth of a
+// tunnel, and the softer one as it bursts out of the other end.
+function playPortalWhump(worldX, strength) {
+  const volume = portalWhumpVolume * strength * Math.min(1, motion.speed / cruiseSpeed);
+  playNoiseBurst(worldX, "lowpass", 300, 0.7, volume, 0.6);
+  playToneBurst(worldX, 160, 60, volume * 0.1, 0.4);
+}
+
 function playDoor(worldX) {
   playNoiseBurst(worldX, "lowpass", 300, 1, 0.5, 0.18);
   playNoiseBurst(worldX, "bandpass", 1200, 2, 0.08, 0.04);
@@ -273,10 +302,16 @@ function playWhistle(delay, seconds) {
 
   const envelope = context.createGain();
   envelope.gain.setValueAtTime(0, start);
-  envelope.gain.linearRampToValueAtTime(0.1, start + 0.08);
-  envelope.gain.setValueAtTime(0.1, end);
+  envelope.gain.linearRampToValueAtTime(whistleVolume, start + 0.08);
+  envelope.gain.setValueAtTime(whistleVolume, end);
   envelope.gain.linearRampToValueAtTime(0, end + 0.25);
-  sendToTrainBus(envelope, getChimneyWorldX());
+  // The whistle skips the compressor, which would flatten it back into the
+  // rest of the mix. Only the limiter at the very end still guards it.
+  const panner = context.createStereoPanner();
+  panner.pan.value = panAt(getChimneyWorldX());
+  envelope.connect(panner).connect(sound.output);
+  sound.master.gain.setTargetAtTime(mixUnderWhistle, start, 0.05);
+  sound.master.gain.setTargetAtTime(1, end, 0.3);
 
   for (const note of whistleNotes) {
     const tone = context.createOscillator();
@@ -302,10 +337,24 @@ function playWhistle(delay, seconds) {
   breath.start(start, 0, seconds + 0.3);
 }
 
+// How far inside a tunnel the engine is, from 0 out in the open to 1 deep
+// inside, whether it is going into one or coming out of the other end.
+function getEnclosure() {
+  const frontX = getTrainFrontX();
+  const intoNext = (frontX - segment.tunnelX) / enclosingDistance;
+  let insideLast = 0;
+  if (segment.exitX !== null) insideLast = 1 - (frontX - segment.exitX) / enclosingDistance;
+  return Math.max(0, Math.min(1, Math.max(intoNext, insideLast)));
+}
+
 function updateSound(dt) {
   if (!sound.on) return;
+  const now = sound.context.currentTime;
+  // Darkness is where the camera is, and so where we listen from. Enclosure
+  // is where the engine is.
   const darkness = getTunnelDarkness();
   const outside = 1 - darkness;
+  const enclosure = getEnclosure();
   const speedShare = motion.speed / cruiseSpeed;
 
   // Wind comes and goes in gusts.
@@ -320,12 +369,29 @@ function updateSound(dt) {
   setVolume(sound.steam, motion.state === "stopped" ? steamVolume : 0);
   const squealing = motion.state === "braking" && motion.speed < 3;
   setVolume(sound.squeal, squealing ? 0.012 * (1 - motion.speed / 3) + 0.004 : 0);
-  sound.echoVolume.gain.setTargetAtTime(darkness * 0.6, sound.context.currentTime, 0.3);
+  // From outside, a train in a tunnel sounds muffled and boomy. Once we
+  // have followed it in, it is clear again, and the echo is all around.
+  const muffling = enclosure * outside;
+  // Pitch is heard in ratios, so the cutoff moves by ratio, not by hertz.
+  const cutoff = openFrequency * Math.pow(muffledFrequency / openFrequency, muffling);
+  sound.muffle.frequency.setTargetAtTime(cutoff, now, 0.15);
+  sound.echoVolume.gain.setTargetAtTime(Math.max(enclosure * 0.35, darkness * 0.6), now, 0.3);
 
   updateChuffs(dt);
   updateRailClicks();
   updateWhistles();
   updateDoors();
+  updatePortals();
+}
+
+function updatePortals() {
+  const frontX = getTrainFrontX();
+  const previous = sound.previousFrontX;
+  sound.previousFrontX = frontX;
+  if (previous === null) return;
+  const crossed = (mouthX) => mouthX !== null && previous < mouthX && frontX >= mouthX;
+  if (crossed(segment.tunnelX)) playPortalWhump(segment.tunnelX, 1);
+  if (crossed(segment.exitX)) playPortalWhump(segment.exitX, 0.5);
 }
 
 // The same rhythm as the smoke: four chuffs for every turn of the wheels.
@@ -394,6 +460,7 @@ function updateDoors() {
 function catchUpSound() {
   sound.previousState = motion.state;
   sound.previousTunnelDistance = segment.tunnelX - getTrainFrontX();
+  sound.previousFrontX = getTrainFrontX();
   if (segment.station) {
     for (const change of segment.station.changes) {
       if (change.done) sound.doorsHeard.add(change);
