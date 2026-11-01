@@ -10,7 +10,7 @@ Sleeper is a night train you watch from outside. A steam train pulls out of a co
 
 ## The route
 
-Each journey passes through two to four landscapes: city, forest, fields, coast and mountains. The weather is clear, rain, snow or fog, and each has its own air, so a far ridge stays sharp on a clear night while a tree 150 metres away is half gone in fog.
+The line never ends. It runs through city, forest, fields, coast and mountains, two to four landscapes at a time, and when one run is over it carries on into new ones, so a long night never repeats. The weather is clear, rain, snow or fog, and each has its own air, so a far ridge stays sharp on a clear night while a tree 150 metres away is half gone in fog.
 
 Half the landscapes have a station, with a brick building, a clock set to the departure time and a signal that drops to green when it is time to go. The train brakes to stop exactly on its mark, passengers get on and off, and compartments light up or go dark. Each landscape ends at a grassy hill with a stone tunnel mouth, and the next one is built in the dark while the train is inside.
 

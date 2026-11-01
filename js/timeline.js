@@ -24,8 +24,10 @@ const timeline = {
   nextSeed: null, // set only by the New journey button
 };
 
-// The stretch of line for the current landscape.
+// The stretch of line for the current landscape, and the run of landscapes
+// it belongs to.
 let segment = null;
+let leg = null;
 
 const newJourneyButton = document.getElementById("new-journey");
 const stationLabel = document.getElementById("station-label");
@@ -37,7 +39,7 @@ const departureWaitSeconds = 8;
 // It is null when there is no tunnel to come out of.
 function showBiome(index, secondsToExit = null) {
   timeline.biomeIndex = index;
-  activeBiome = journey.biomes[index];
+  activeBiome = leg.biomes[index];
 
   let startX = getTrainFrontX();
   let exitX = null;
@@ -46,10 +48,10 @@ function showBiome(index, secondsToExit = null) {
     startX = exitX;
   }
 
-  const length = journey.biomeSeconds[index] * cruiseSpeed;
+  const length = leg.biomeSeconds[index] * cruiseSpeed;
   segment = { exitX, tunnelX: startX + length, station: null };
-  if (journey.stations[index]) {
-    segment.station = createStation(startX + length * 0.5, journey.seed + 500 + index);
+  if (leg.stations[index]) {
+    segment.station = createStation(startX + length * 0.5, getStationSeed(index));
   }
 
   layers = buildBiomeLayers(activeBiome);
@@ -60,11 +62,11 @@ function showBiome(index, secondsToExit = null) {
 // dark before the scene fades in, so the stop lasts that much longer.
 function showDepartureStation(secondsInDark) {
   timeline.biomeIndex = 0;
-  activeBiome = journey.biomes[0];
+  activeBiome = leg.biomes[0];
 
   const frontX = getTrainFrontX();
   const waitSeconds = departureWaitSeconds + secondsInDark;
-  const length = journey.biomeSeconds[0] * cruiseSpeed;
+  const length = leg.biomeSeconds[0] * cruiseSpeed;
   const station = createStation(frontX - stopPastMiddle, journey.seed + 500, waitSeconds, true);
   segment = { exitX: null, tunnelX: frontX + length, station };
 
@@ -75,10 +77,19 @@ function showDepartureStation(secondsInDark) {
   layers = buildBiomeLayers(activeBiome);
 }
 
+// The first leg keeps the seeds its stations always had, so a shared link
+// still shows the same stations. Later legs roll fresh ones, so their
+// stations get new names, buildings and passengers.
+function getStationSeed(index) {
+  if (leg.number === 0) return journey.seed + 500 + index;
+  return Math.floor(hash(journey.seed, leg.number, index) * 1000000);
+}
+
 // secondsInDark is set when a new journey starts inside a tunnel, while the
 // screen is black.
 function startJourney(seed, secondsInDark = 0) {
   journey = generateJourney(seed);
+  leg = generateLeg(journey, 0, null);
   activeWeather = journey.weather;
   trainVehicles = createTrain();
   resetSmoke();
@@ -123,7 +134,12 @@ function updateTimeline(dt) {
       startJourney(timeline.nextSeed, secondsToExit + tunnelFadeInSeconds);
       showJourneyLabel();
     } else {
-      const nextIndex = (timeline.biomeIndex + 1) % journey.biomes.length;
+      let nextIndex = timeline.biomeIndex + 1;
+      if (nextIndex === leg.biomes.length) {
+        const lastBiome = leg.biomes[leg.biomes.length - 1];
+        leg = generateLeg(journey, leg.number + 1, lastBiome);
+        nextIndex = 0;
+      }
       showBiome(nextIndex, secondsToExit);
     }
   }

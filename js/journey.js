@@ -3,15 +3,7 @@
 
 function generateJourney(seed) {
   const random = seededRandom(seed);
-  const allBiomes = ["city", "forest", "fields", "coast", "mountains"];
-
-  const biomeCount = 2 + Math.floor(random() * 3);
-  const biomes = [];
-  for (let i = 0; i < biomeCount; i++) {
-    const previousBiome = biomes[i - 1];
-    const allowedBiomes = allBiomes.filter((biome) => biome !== previousBiome);
-    biomes.push(pick(random, allowedBiomes));
-  }
+  const biomes = rollBiomes(random, null);
 
   const weather = pick(random, ["clear", "rain", "snow", "fog"]);
   const hour = 22 + Math.floor(random() * 3);
@@ -22,10 +14,44 @@ function generateJourney(seed) {
     livery: Math.floor(random() * 3),
   };
 
-  const stations = biomes.map(() => random() < 0.5);
-  const biomeSeconds = biomes.map(() => 50 + random() * 30);
+  const { stations, biomeSeconds } = rollStops(random, biomes);
 
   return { seed, biomes, weather, hour, minute, train, stations, biomeSeconds };
+}
+
+// The line never ends. Its landscapes come in legs: the first leg is the
+// one above, and when it runs out the train carries on into a new one. Each
+// later leg is rolled from the journey's number and the leg's count, so a
+// long night never repeats, yet the same journey always unrolls the same.
+// The train and the weather stay the same all night.
+function generateLeg(journey, number, previousBiome) {
+  if (number === 0) {
+    return { number, biomes: journey.biomes, stations: journey.stations, biomeSeconds: journey.biomeSeconds };
+  }
+  const random = seededRandom(journey.seed + 400, number);
+  const biomes = rollBiomes(random, previousBiome);
+  return { number, biomes, ...rollStops(random, biomes) };
+}
+
+// Two to four landscapes, never the same one twice in a row, including
+// across the join with the leg before.
+function rollBiomes(random, previousBiome) {
+  const allBiomes = ["city", "forest", "fields", "coast", "mountains"];
+  const count = 2 + Math.floor(random() * 3);
+  const biomes = [];
+  for (let i = 0; i < count; i++) {
+    const before = i === 0 ? previousBiome : biomes[i - 1];
+    const allowedBiomes = allBiomes.filter((biome) => biome !== before);
+    biomes.push(pick(random, allowedBiomes));
+  }
+  return biomes;
+}
+
+// Which landscapes have a station, and how long each one lasts.
+function rollStops(random, biomes) {
+  const stations = biomes.map(() => random() < 0.5);
+  const biomeSeconds = biomes.map(() => 50 + random() * 30);
+  return { stations, biomeSeconds };
 }
 
 const placeNames = {
