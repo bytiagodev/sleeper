@@ -15,6 +15,7 @@ function buildBiomeLayers(biome) {
     ...biomeBuilders[biome](),
     createPoleLayer(journey.seed + 81),
     createTrackLayer(),
+    ...createForegroundLayers(biome, journey.seed + 121),
     createVergeLayer(journey.seed + 91),
   ];
   if (segment.station) layers.push(...createStationLayers(segment.station));
