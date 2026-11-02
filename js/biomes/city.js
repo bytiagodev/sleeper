@@ -26,12 +26,7 @@ function createCityLayer({ seed, z, plotWidth, minHeight, heightRange, color, wi
         const right = screenXAt(x + buildingWidth, z);
         const roofY = baseY - buildingHeight * scale;
         buildings.rect(left, roofY, right - left, baseY - roofY);
-
-        if (random() < 0.3) {
-          const antennaHeight = (3 + random() * 8) * scale;
-          const antennaWidth = Math.max(1, 0.3 * scale);
-          buildings.rect((left + right) / 2, roofY - antennaHeight, antennaWidth, antennaHeight);
-        }
+        traceRooftop(buildings, left, right, roofY, scale, seededRandom(seed + 100, index));
 
         const columns = Math.floor((buildingWidth - 2) / 3.2);
         const floors = Math.floor((buildingHeight - 3) / 3.6);
@@ -69,6 +64,56 @@ function createCityLayer({ seed, z, plotWidth, minHeight, heightRange, color, wi
       ctx.restore();
     },
   };
+}
+
+// What stands on a roof: always a cornice, the ledge along the top of the
+// wall, and often more. A narrower block set back from the edge, a water
+// tank on legs, chimney stacks or an aerial.
+function traceRooftop(path, left, right, roofY, scale, random) {
+  const width = right - left;
+  const overhang = 0.3 * scale;
+  path.rect(left - overhang, roofY - 0.6 * scale, width + overhang * 2, 0.6 * scale);
+
+  const kind = random();
+  if (kind < 0.2) {
+    const setbackWidth = width * (0.4 + random() * 0.3);
+    const setbackLeft = left + (width - setbackWidth) * random();
+    const setbackHeight = (4 + random() * 8) * scale;
+    path.rect(setbackLeft, roofY - setbackHeight, setbackWidth, setbackHeight);
+    path.rect(setbackLeft - overhang / 2, roofY - setbackHeight - 0.4 * scale, setbackWidth + overhang, 0.4 * scale);
+  } else if (kind < 0.4) {
+    traceWaterTank(path, left + width * (0.2 + random() * 0.6), roofY, scale);
+  } else if (kind < 0.55) {
+    const stacks = 1 + Math.floor(random() * 3);
+    for (let i = 0; i < stacks; i++) {
+      const stackX = left + width * (0.1 + random() * 0.8);
+      const stackHeight = (2 + random() * 1.5) * scale;
+      path.rect(stackX, roofY - stackHeight, 0.8 * scale, stackHeight);
+      path.rect(stackX - 0.1 * scale, roofY - stackHeight - 0.25 * scale, 1 * scale, 0.25 * scale);
+    }
+  } else if (kind < 0.75) {
+    const antennaHeight = (3 + random() * 8) * scale;
+    const antennaWidth = Math.max(1, 0.3 * scale);
+    path.rect(left + width / 2, roofY - antennaHeight, antennaWidth, antennaHeight);
+  }
+}
+
+// A wooden water tank: a barrel with a pointed cap, raised on legs so the
+// water has the height to reach the top floors.
+function traceWaterTank(path, centerX, roofY, scale) {
+  const legHeight = 2 * scale;
+  const tankWidth = 3 * scale;
+  const tankHeight = 3 * scale;
+  const legWidth = Math.max(1, 0.25 * scale);
+  const tankBottom = roofY - legHeight;
+  const tankTop = tankBottom - tankHeight;
+  path.rect(centerX - tankWidth * 0.4, tankBottom, legWidth, legHeight);
+  path.rect(centerX + tankWidth * 0.4 - legWidth, tankBottom, legWidth, legHeight);
+  path.rect(centerX - tankWidth / 2, tankTop, tankWidth, tankHeight);
+  path.moveTo(centerX - tankWidth / 2 - 0.15 * scale, tankTop);
+  path.lineTo(centerX, tankTop - 1.2 * scale);
+  path.lineTo(centerX + tankWidth / 2 + 0.15 * scale, tankTop);
+  path.closePath();
 }
 
 // Low warehouses and yard walls between the city and the line.
