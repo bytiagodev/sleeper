@@ -30,6 +30,8 @@ Sound comes from noise and tones. Filtered noise becomes wind, rain, steam or a 
 
 Open `index.html` in a browser. The code is plain JavaScript split into one file per part of the scene, under `js/`, loaded in order by the page.
 
+The promise that a journey is a single number has tests in `test/`, which need nothing but Node: run `node --test`.
+
 ---
 
 <p align="center">
