@@ -1,8 +1,7 @@
-// Returns a number between 0 and 1 that looks random but is always the same
-// for the same inputs. The sine of a large number jumps around
-// unpredictably, so keeping only its decimals gives a random-looking value.
-// The multipliers are arbitrary; they just keep nearby inputs from giving
-// nearby results.
+// A number from 0 to 1 that looks random but is always the same for the same
+// inputs. The decimals of the sine of a large number jump around
+// unpredictably. The multipliers are arbitrary; they only keep nearby inputs
+// from giving nearby results.
 function hash(a, b = 0, c = 0) {
   const value = Math.sin(a * 127.1 + b * 311.7 + c * 74.7) * 43758.5453;
   return value - Math.floor(value);
@@ -26,7 +25,6 @@ function randomSeed() {
   return Math.floor(Math.random() * 1000000);
 }
 
-// Turns a straight 0 to 1 progress into one that starts and ends gently.
 function easeInOut(progress) {
   return (1 - Math.cos(progress * Math.PI)) / 2;
 }
@@ -56,8 +54,8 @@ function layeredNoise(x, seed, layers = 4) {
   return total / maxTotal;
 }
 
-// The same idea on a grid, for textures. If wrap is set, the grid repeats
-// every `wrap` cells, so the texture's edges match and it tiles cleanly.
+// If wrap is set, the grid repeats every `wrap` cells, so a texture's edges
+// match and it tiles cleanly.
 function smoothNoise2D(x, y, seed, wrap = 0) {
   let left = Math.floor(x);
   let top = Math.floor(y);

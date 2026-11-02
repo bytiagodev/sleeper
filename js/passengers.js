@@ -1,11 +1,8 @@
-// People getting on and off the train at stations.
-//
-// Each stop is planned when its station is created. Some passengers will
-// get off, except where the journey begins, and some people waiting on the
-// platform will get on. Each of
-// them moves at their own moment during the stop, so compartments light up
-// and empty one by one rather than all at once. The people who got off are
-// still on the platform as the train pulls away.
+// Each stop is planned when its station is created. Some passengers get off,
+// except where the journey begins, and some people waiting get on. Each moves
+// at their own moment, so compartments light up and empty one by one rather
+// than all at once. Those who got off are still on the platform as the train
+// pulls away.
 
 function planPassengers(station) {
   const random = seededRandom(station.seed, 3);
@@ -55,7 +52,6 @@ function createPlatformPerson(x, random) {
   };
 }
 
-// Called every frame while the train stands at the station.
 function updatePassengers(station, dt) {
   station.secondsStopped += dt;
   for (const change of station.changes) {

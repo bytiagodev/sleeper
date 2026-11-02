@@ -180,8 +180,6 @@ function drawTailLamp() {
   drawGlow(-0.12, -1.45, 0.9, "240, 70, 60", 0.7);
 }
 
-// Light from the windows and the firebox falls on the ground between the
-// train and the camera.
 function drawLightOnGround(layout) {
   const nearestY = Math.min(window.innerHeight, groundYAt(camera.trackZ - 4.5));
   const top = groundYAt(camera.trackZ - 1.4);
@@ -208,7 +206,6 @@ function drawLightOnGround(layout) {
 
 let lightSpillSprite;
 
-// A soft band of light that widens and fades as it moves away from the train.
 function getLightSpillSprite() {
   if (!lightSpillSprite) {
     const size = 64;
@@ -224,8 +221,8 @@ function getLightSpillSprite() {
   return lightSpillSprite;
 }
 
-// A spoked wheel. The angle comes from the distance travelled, so the wheel
-// turns exactly as fast as the ground moves under it.
+// The angle comes from the distance travelled, so the wheel turns exactly as
+// fast as the ground moves under it.
 function drawWheel(centerX, centerY, radius, spokeCount, pixel, hasCounterweight = false) {
   const angle = travelled / radius;
 
@@ -286,7 +283,6 @@ function drawLettering(text, x, y, sizeMetres, pixel) {
   ctx.restore();
 }
 
-// A horizontal line along the top of a shape, where the moonlight hits it.
 function drawTopEdge(fromX, toX, y, pixel) {
   ctx.fillStyle = moonlitEdge;
   ctx.fillRect(fromX, y, toX - fromX, pixel * 1.3);

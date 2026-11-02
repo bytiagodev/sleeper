@@ -31,7 +31,6 @@ function resetParticle(particle, depth, startAnywhere) {
   }
   particle.speedY = getFallSpeed(depth);
 
-  // Each particle lands at a random point on the ground, not all on one line.
   const landingY = camera.horizonY + weatherRandom() * (height - camera.horizonY);
   particle.secondsLeft = Math.max(0.05, (landingY - particle.y) / particle.speedY);
 

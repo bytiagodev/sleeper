@@ -1,19 +1,11 @@
-// Sound, all made by code with the Web Audio API. There are no recordings.
+// All sound is made with the Web Audio API; there are no recordings.
 //
-// Every sound starts from one of two raw materials:
-//   noise:  a hiss of random values. Passed through a filter it becomes
-//           wind, rain, steam, the rumble of wheels or a knock.
-//   tones:  plain notes from oscillators, for the whistle and the brakes.
+// Every sound is either filtered noise (wind, rain, steam, the rumble of the
+// wheels, knocks) or oscillator tones (the whistle and the brakes). Beds loop
+// for ever and only their volume follows what is happening. Events are short
+// sounds started at one moment: a chuff, a rail joint, a door, the whistle.
 //
-// There are two kinds of sound:
-//   beds:   steady sounds that loop for ever (wind, rain, the rumble of the
-//           wheels, steam hiss, brake squeal). Each frame only their volume
-//           changes, to follow what is happening.
-//   events: short sounds started at one moment (a chuff, a wheel crossing a
-//           rail joint, a door, the whistle).
-//
-// Browsers only allow sound after a click, so sound starts off and the
-// Sound button turns it on.
+// Browsers only allow sound after a click, so sound starts off.
 
 const sound = {
   context: null,
@@ -210,8 +202,6 @@ function sendToTrainBus(node, worldX) {
   node.connect(panner).connect(sound.trainBus);
 }
 
-// A short note that starts sharply, slides from one pitch to another and
-// dies away.
 function playToneBurst(worldX, fromFrequency, toFrequency, volume, seconds) {
   const context = sound.context;
   const now = context.currentTime;
@@ -228,7 +218,6 @@ function playToneBurst(worldX, fromFrequency, toFrequency, volume, seconds) {
   tone.stop(now + seconds + 0.05);
 }
 
-// A short burst of filtered noise that starts sharply and dies away.
 function playNoiseBurst(worldX, filterType, frequency, q, volume, seconds) {
   const context = sound.context;
   const now = context.currentTime;
@@ -302,7 +291,6 @@ function playDoor(worldX) {
   playNoiseBurst(worldX, "bandpass", 1200, 2, 0.08, 0.04);
 }
 
-// One blast of the whistle, starting after `delay` seconds.
 function playWhistle(delay, seconds) {
   const context = sound.context;
   const start = context.currentTime + delay;
@@ -358,8 +346,8 @@ function getEnclosure() {
 function updateSound(dt) {
   if (!sound.on || sound.paused) return;
   const now = sound.context.currentTime;
-  // Darkness is where the camera is, and so where we listen from. Enclosure
-  // is where the engine is.
+  // Darkness follows the camera, and so the listener. Enclosure follows the
+  // engine.
   const darkness = getTunnelDarkness();
   const outside = 1 - darkness;
   const enclosure = getEnclosure();
@@ -377,8 +365,8 @@ function updateSound(dt) {
   setVolume(sound.steam, motion.state === "stopped" ? steamVolume : 0);
   const squealing = motion.state === "braking" && motion.speed < 3;
   setVolume(sound.squeal, squealing ? 0.012 * (1 - motion.speed / 3) + 0.004 : 0);
-  // From outside, a train in a tunnel sounds muffled and boomy. Once we
-  // have followed it in, it is clear again, and the echo is all around.
+  // From outside, a train in a tunnel sounds muffled and boomy. Once the
+  // camera has followed it in, it is clear again, with the echo all around.
   const muffling = enclosure * outside;
   // Pitch is heard in ratios, so the cutoff moves by ratio, not by hertz.
   const cutoff = openFrequency * Math.pow(muffledFrequency / openFrequency, muffling);
@@ -451,7 +439,6 @@ function updateWhistles() {
   sound.previousTunnelDistance = tunnelDistance;
 }
 
-// A door bangs each time someone gets on or off at a station.
 function updateDoors() {
   const station = segment.station;
   if (!station) return;
@@ -517,7 +504,6 @@ function setSoundPaused(paused) {
   }
 }
 
-// Silent while the tab is hidden, back when it is shown again.
 document.addEventListener("visibilitychange", () => {
   if (!sound.context || !sound.on || sound.paused) return;
   if (document.hidden) sound.context.suspend();

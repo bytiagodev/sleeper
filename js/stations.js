@@ -1,12 +1,7 @@
-// A country station on the far side of the line: a brick station building
-// with a clock, a platform under a canopy with lamps, people waiting, name
-// boards at each end, and a signal that shows red until the train has
-// stopped and is ready to leave.
-//
-// The building, the canopy's front board, the platform wall and the name
-// boards are each drawn once when the station is created (see prerender.js),
-// then drawn at their place every frame. Only the lamps, which glow, and
-// the signal, which changes, are drawn live.
+// A country station on the far side of the line. The building, the canopy's
+// front board, the platform wall and the name boards are drawn once when the
+// station is created (see prerender.js) and placed every frame. Only the
+// lamps, which glow, and the signal, which changes, are drawn live.
 
 const stationNames = [
   "Aldermere", "Hollowcross", "Wrenhaven", "Saltmere", "Kingsfold", "Ashmoor",
@@ -54,8 +49,6 @@ function createStation(stationX, seed, stopSeconds = stationStopSeconds, isDepar
 function createStationLayers(station) {
   return [createStationBuildingLayer(station), createPlatformLayer(station)];
 }
-
-// The station building
 
 function createStationBuildingLayer(station) {
   const lights = [];
@@ -182,7 +175,7 @@ function prerenderStationBuilding(station, lights) {
   });
 }
 
-// rows of slates, each row overlapping the one below
+// Rows of slates, each overlapping the one below
 function drawSlateRoof(p, corners, seed) {
   p.save();
   p.beginPath();
@@ -234,9 +227,8 @@ function drawQuoins(p, left, height) {
   }
 }
 
-// A tall sash window with a stone surround, a rounded head and a sill.
-// Lit windows glow warm with half-drawn curtains; dark ones show only a
-// faint reflection of the sky.
+// Lit windows glow warm with half-drawn curtains; dark ones show only a faint
+// reflection of the sky.
 function drawSashWindow(p, left, bottom, width, height, state, seed) {
   const top = bottom + height;
   p.fillStyle = `rgb(${stoneColor.map((c) => c * 0.7).join(",")})`;
@@ -298,8 +290,7 @@ function drawDoor(p, left, bottom, width, height) {
   }
 }
 
-// A round clock in a stone surround. Its hands show the time the journey
-// left.
+// Its hands show the time the journey left.
 function drawClock(p, centerX, height, radius) {
   p.fillStyle = `rgb(${stoneColor.join(",")})`;
   p.beginPath();
@@ -340,7 +331,6 @@ function drawClock(p, centerX, height, radius) {
   p.lineCap = "butt";
 }
 
-// An old railway poster, faded, in a frame.
 function drawPosterBoard(p, left, bottom, seed) {
   p.fillStyle = "#1a1c22";
   p.fillRect(left - 0.08, -bottom - 1.68, 1.76, 1.76);
@@ -358,8 +348,6 @@ function drawPosterBoard(p, left, bottom, seed) {
   p.arc(left + 1.1, -bottom - 0.9, 0.3 + hash(seed, 2, 3) * 0.1, 0, Math.PI * 2);
   p.fill();
 }
-
-// The platform
 
 function createPlatformLayer(station) {
   const x = station.x;
@@ -388,8 +376,6 @@ function createPlatformLayer(station) {
   };
 }
 
-// The platform's brick front wall, with a ramp down at each end and stone
-// coping along the top, painted white along its edge.
 function prerenderPlatformWall(length, seed) {
   return prerender(length, 1.05, (p) => {
     p.save();
@@ -411,8 +397,8 @@ function prerenderPlatformWall(length, seed) {
   });
 }
 
-// The canopy's front board: green-painted timber with a gold line, and the
-// wooden fringe of points along its bottom edge that country stations had.
+// Green-painted timber with a gold line, and the fretwork fringe along its
+// bottom edge that country stations had.
 function prerenderCanopyValance(length) {
   return prerender(length, 0.9, (p) => {
     p.fillStyle = stationGreen;
@@ -496,7 +482,6 @@ function drawCanopyRoof(x) {
   }
 }
 
-// Lanterns hanging under the canopy
 function drawCanopyLamps(x) {
   const z = canopyFrontZ + 1;
   const scale = scaleAt(z);
@@ -517,8 +502,8 @@ function drawCanopyLamps(x) {
   }
 }
 
-// A person waiting, seen as a dark shape against the lamplight: a head, a
-// long coat, and sometimes a suitcase.
+// A dark shape against the lamplight: a head, a long coat, and sometimes a
+// suitcase.
 function drawPerson(person) {
   const scale = scaleAt(person.z);
   const feet = projectPoint(person.x, person.z, platformHeight);

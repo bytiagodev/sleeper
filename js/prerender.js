@@ -1,13 +1,11 @@
-// Detailed images of buildings and walls, drawn by code once and reused.
-//
 // A station or a tunnel mouth has far too much detail to draw from scratch
 // sixty times a second: thousands of bricks, stone blocks, windows, ivy. So
-// each one is drawn once, in metres, into its own image when it is
-// created, and every frame only that image is drawn, scaled to its distance.
+// each is drawn once, in metres, into its own image, and every frame only
+// that image is drawn, scaled to its distance.
 //
-// Inside an image, x runs left to right and y runs up from the bottom
-// edge, both in metres. The canvas y axis points down, so heights are
-// written as negative numbers, like the train.
+// Inside an image, x runs left to right and y runs up from the bottom edge,
+// both in metres. The canvas y axis points down, so heights are negative, as
+// on the train.
 
 const prerenderPixelsPerMetre = 40;
 
@@ -25,8 +23,8 @@ function prerender(widthMetres, heightMetres, drawDetail) {
   return image;
 }
 
-// Fades a finished image towards the colour of the air, as it looks
-// from its distance. Done once, because the weather doesn't change mid-way.
+// Fades a finished image towards the colour of the air at its distance. Done
+// once, because the weather doesn't change during a journey.
 function hazePrerendered(image, z) {
   const p = image.getContext("2d");
   p.save();
@@ -38,15 +36,11 @@ function hazePrerendered(image, z) {
   p.restore();
 }
 
-// Draws an image that faces the camera, with its bottom-left corner at
-// a point in the world.
 function drawPrerendered(image, leftX, z, bottomHeight = 0) {
   const topLeft = projectPoint(leftX, z, bottomHeight + image.heightMetres);
   const scale = scaleAt(z);
   ctx.drawImage(image, topLeft.x, topLeft.y, image.widthMetres * scale, image.heightMetres * scale);
 }
-
-// Brick, shade by shade
 
 // rgb is the brick colour as [red, green, blue]. Every brick gets its own
 // small change of shade, the mortar shows between them, and alternate rows
@@ -75,7 +69,6 @@ function drawBricks(p, left, bottom, width, height, rgb, seed) {
   p.restore();
 }
 
-// Larger dressed stone blocks in courses, for corners, tunnel faces and walls.
 function drawStones(p, left, bottom, width, height, rgb, seed, courseHeight = 0.45) {
   p.save();
   p.beginPath();
@@ -94,7 +87,7 @@ function drawStones(p, left, bottom, width, height, rgb, seed, courseHeight = 0.
       const shade = 0.7 + hash(row, column, seed + 2) * 0.45;
       p.fillStyle = `rgb(${rgb[0] * shade}, ${rgb[1] * shade}, ${rgb[2] * shade})`;
       p.fillRect(x, y, stoneWidth - 0.03, courseHeight - 0.03);
-      // A lighter top edge on each stone, where the moonlight falls
+      // Moonlight on the top edge of each stone
       p.fillStyle = "rgba(190, 200, 235, 0.08)";
       p.fillRect(x, y, stoneWidth - 0.03, 0.03);
       x += stoneWidth;
@@ -104,7 +97,6 @@ function drawStones(p, left, bottom, width, height, rgb, seed, courseHeight = 0.
   p.restore();
 }
 
-// Ivy: clusters of small dark leaves spilling down from a point.
 function drawIvy(p, x, top, spread, length, seed) {
   for (let i = 0; i < 260; i++) {
     const down = Math.pow(hash(i, 1, seed), 0.7) * length;
@@ -117,8 +109,6 @@ function drawIvy(p, x, top, spread, length, seed) {
   }
 }
 
-// Soot and rain have run down old stonework for years: darker streaks
-// hanging below ledges.
 function drawStains(p, left, top, width, length, seed, strength = 0.35) {
   for (let i = 0; i < width * 3; i++) {
     const x = left + hash(i, 1, seed) * width;
@@ -131,7 +121,6 @@ function drawStains(p, left, top, width, length, seed, strength = 0.35) {
   }
 }
 
-// Warm light from a lamp falling on a wall.
 function drawLampLight(p, x, height, radius, strength) {
   const light = p.createRadialGradient(x, -height, 0, x, -height, radius);
   light.addColorStop(0, `rgba(255, 180, 100, ${strength})`);
@@ -143,7 +132,7 @@ function drawLampLight(p, x, height, radius, strength) {
   p.restore();
 }
 
-// Letters spaced out across a board, the way station names were sign-written.
+// Spaced out, the way station names were sign-written.
 function drawSpacedText(p, text, centerX, height, letterHeight, color) {
   p.save();
   p.translate(centerX, -height);

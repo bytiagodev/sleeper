@@ -21,8 +21,7 @@ function resize() {
   if (journey) buildSky();
 }
 
-// Every few seconds, check the average frame time. Slower than 40 frames a
-// second, drop to fewer pixels, down to half.
+// Below 40 frames a second, the scene drops to fewer pixels, down to half.
 const slowFrameSeconds = 1 / 40;
 const speedCheckSeconds = 3;
 let secondsMeasured = 0;

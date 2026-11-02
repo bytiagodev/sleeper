@@ -1,6 +1,5 @@
-// A pine: a thin trunk and layers of drooping branches, wider towards the
-// bottom. Each layer reaches a slightly different distance on each side,
-// so no two trees are the same and none is perfectly symmetrical.
+// Each branch layer reaches a slightly different distance on each side, so no
+// two trees are the same and none is perfectly symmetrical.
 function tracePine(path, centerX, baseY, width, height, random) {
   const top = baseY - height;
   const layerCount = 9;
@@ -57,7 +56,6 @@ function createTreeRow({ seed, z, spacing, minHeight, heightRange, color, gapCha
   };
 }
 
-// Low bushes and young trees just behind the track.
 function createUndergrowthLayer(seed) {
   const z = 17;
   const fill = hazed("#06070d", z);
@@ -73,7 +71,6 @@ function createUndergrowthLayer(seed) {
         if (random() < 0.35) return;
         const bushX = screenXAt(x + random() * 2, z);
         const bushHeight = (0.8 + random() * 1.6) * scale;
-        // A bush is a few overlapping circles sitting on the ground.
         for (let i = 0; i < 4; i++) {
           const radius = bushHeight * (0.35 + random() * 0.25);
           const circleX = bushX + (random() - 0.5) * bushHeight * 1.4;

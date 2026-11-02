@@ -25,8 +25,8 @@ const runningPlateY = -1.72;
 const ironColor = "#15171f";
 
 function drawLocomotive(pixel) {
-  // The frames: deep steel plates behind the wheels that carry everything,
-  // from under the cab to the buffer beam. Steps hang down below the cab.
+  // Frames: the steel plates behind the wheels that carry everything. Steps
+  // hang below the cab.
   ctx.fillStyle = "#0b0c11";
   ctx.fillRect(-0.05, runningPlateY, 10.7, 0.85);
   ctx.fillRect(0.1, -0.9, 0.35, 0.12);
@@ -240,11 +240,9 @@ function drawCylinder(pixel) {
   drawTopEdge(9.35, 10.45, -1.5, pixel);
 }
 
-// Everything on the locomotive that gives off light: the firebox seen
-// through the cab, and the lamps.
 function drawLocomotiveLights() {
   const seconds = performance.now() / 1000;
-  // The fire flickers: two slow waves that drift in and out of step.
+  // Two waves at unrelated speeds, so the flicker never quite repeats.
   const flicker = 0.85 + Math.sin(seconds * 7.3) * 0.08 + Math.sin(seconds * 13.1) * 0.06;
 
   const fire = ctx.createLinearGradient(0, cabWindowTop, 0, cabWindowBottom);

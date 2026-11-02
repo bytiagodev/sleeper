@@ -148,7 +148,7 @@ function createVergeLayer(seed) {
   };
 }
 
-// Three blades of grass growing from one root, added to a path.
+// Three blades of grass growing from one root.
 function traceTuft(path, x, baseY, width, height) {
   path.moveTo(x - width / 2, baseY);
   path.lineTo(x - width * 0.45, baseY - height * 0.75);

@@ -66,9 +66,8 @@ function createCityLayer({ seed, z, plotWidth, minHeight, heightRange, color, wi
   };
 }
 
-// What stands on a roof: always a cornice, the ledge along the top of the
-// wall, and often more. A narrower block set back from the edge, a water
-// tank on legs, chimney stacks or an aerial.
+// Every roof has a cornice, the ledge along the top of the wall, and most
+// have one more thing on top.
 function traceRooftop(path, left, right, roofY, scale, random) {
   const width = right - left;
   const overhang = 0.3 * scale;
@@ -98,8 +97,7 @@ function traceRooftop(path, left, right, roofY, scale, random) {
   }
 }
 
-// A wooden water tank: a barrel with a pointed cap, raised on legs so the
-// water has the height to reach the top floors.
+// Raised on legs so the water has the height to reach the top floors.
 function traceWaterTank(path, centerX, roofY, scale) {
   const legHeight = 2 * scale;
   const tankWidth = 3 * scale;
@@ -116,7 +114,6 @@ function traceWaterTank(path, centerX, roofY, scale) {
   path.closePath();
 }
 
-// Low warehouses and yard walls between the city and the line.
 function createYardLayer(seed) {
   const z = 34;
   const fill = hazed("#0a0b15", z);
@@ -159,8 +156,6 @@ function createYardLayer(seed) {
   };
 }
 
-// A street running alongside the line, lit by lamps every 35 m. Each lamp
-// throws a pool of light on the road below it.
 function createStreetLampLayer(seed) {
   const z = 22;
   const lampHeight = 5;

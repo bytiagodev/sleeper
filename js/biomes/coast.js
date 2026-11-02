@@ -68,8 +68,8 @@ function createSeaLayer(seed) {
   };
 }
 
-// Where the waves break on the beach. Each stretch of foam brightens and
-// fades on its own slow cycle, so the surf rolls along the shore.
+// Each stretch of foam brightens and fades on its own slow cycle, so the surf
+// rolls along the shore.
 function drawBreakingFoam(shoreY) {
   const seconds = performance.now() / 1000;
   const scale = scaleAt(shoreZ);
@@ -82,7 +82,6 @@ function drawBreakingFoam(shoreY) {
   ctx.globalAlpha = 1;
 }
 
-// Rocks on the beach between the sea and the line.
 function createBeachRockLayer(seed) {
   const z = 18;
   const fill = hazed("#090a12", z);

@@ -17,7 +17,6 @@ function resetSmoke() {
   for (let i = 0; i < puffCount; i++) puffs.push({ alive: false });
 }
 
-// A soft, lumpy ball of smoke, drawn once and reused for every puff.
 function createPuffSprite(seed) {
   const size = 64;
   return makeTexture(size, size, (x, y) => {

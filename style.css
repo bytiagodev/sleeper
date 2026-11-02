@@ -18,8 +18,7 @@ canvas {
   height: 100%;
 }
 
-/* The only text on screen: the journey's name and two buttons, low in the
-   dark ground below the rails, where they never cover the scene. */
+/* Low in the dark ground below the rails, where it never covers the scene. */
 .chrome {
   position: fixed;
   left: 28px;
@@ -66,8 +65,6 @@ canvas {
   transition: opacity 0.8s ease;
 }
 
-/* A few seconds after the mouse stops, the buttons and the pointer step
-   aside and leave only the scene. */
 body.is-idle {
   cursor: none;
 }
@@ -77,7 +74,7 @@ body.is-idle .buttons {
   pointer-events: none;
 }
 
-/* Quiet until you reach for it: half visible at rest, full on hover. */
+/* Quiet until reached for. */
 .pill {
   padding: 9px 18px;
   font: inherit;
@@ -110,7 +107,7 @@ body.is-idle .buttons {
   cursor: default;
 }
 
-/* On a phone the label sits on its own line above the button. */
+/* On a phone the labels sit on their own line above the buttons. */
 @media (max-width: 640px) {
   .chrome {
     left: 16px;
@@ -148,9 +145,8 @@ body.is-idle .buttons {
   }
 }
 
-/* The sound panel opens upwards from the Sound button, in the same dark
-   glass and cream as the buttons, with the station label's amber for
-   whatever is chosen. */
+/* The same dark glass and cream as the buttons, with the station label's
+   amber for whatever is chosen. */
 .sound-control {
   position: relative;
 }
@@ -201,8 +197,7 @@ body.is-idle .buttons {
   color: rgba(242, 234, 216, 0.55);
 }
 
-/* The slider: a thin cream line, amber up to the volume, and a round thumb.
-   --fill is set from controls.js as the volume changes. */
+/* --fill is set from controls.js: how far the amber runs along the track. */
 #volume {
   --fill: 100%;
   width: 100%;
@@ -325,8 +320,7 @@ body.is-idle .buttons {
   outline: none;
 }
 
-/* What the sleep timer darkens the scene with. It comes up slowly and lifts
-   quickly. */
+/* Comes up slowly and lifts quickly. */
 .sleep-veil {
   position: fixed;
   inset: 0;

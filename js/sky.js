@@ -48,7 +48,6 @@ function createSkyGradient() {
     let green = mix(colors.top[1], colors.horizon[1], progress);
     let blue = mix(colors.top[2], colors.horizon[2], progress);
 
-    // Glow around the moon: a wide faint one and a tight bright one.
     const distanceToMoon = Math.hypot(x * 2 - moon.x, y * 2 - moon.y);
     const glow =
       (Math.exp(-distanceToMoon / 380) * 28 + Math.exp(-distanceToMoon / 70) * 30) *
@@ -112,7 +111,7 @@ function createMoonImage() {
 
     // The moon is a ball, so its edge is a little darker than its middle.
     const edgeShade = Math.pow(1 - distanceFromCentre * distanceFromCentre, 0.18);
-    // The darker patches, the "seas" you can see on the real moon.
+    // The darker patches, the "seas" on the real moon.
     const seas = Math.max(0, layeredNoise2D(x / 22, y / 22, 13, 4) - 0.48) * 0.5;
     const light = edgeShade * (0.97 - seas);
     const softEdge = Math.min(1, (1 - distanceFromCentre) * moonRadius);
@@ -141,8 +140,6 @@ function drawSky() {
   ctx.restore();
 }
 
-// Clouds
-
 function createCloudSprite(seed) {
   const width = 360;
   const height = 100;
@@ -169,8 +166,8 @@ function createCloudLayer(seed) {
     draw() {
       const scale = scaleAt(z);
       const moon = getMoon();
-      // The wind carries the clouds as well, so measured against them we
-      // have gone a bit further than the train has.
+      // The wind carries the clouds as well, so measured against them the
+      // train has gone a bit further than it really has.
       const cloudsTravelled = travelled + motion.clock * windSpeed;
       const halfScreen = window.innerWidth / 2 / scale;
       const first = Math.floor((cloudsTravelled - halfScreen - 5000) / spacing);
@@ -197,8 +194,6 @@ function createCloudLayer(seed) {
     },
   };
 }
-
-// Ground
 
 // Far ground is lighter than near ground: distance fades things towards the
 // colour of the sky, and that is a big part of what makes them read as far.

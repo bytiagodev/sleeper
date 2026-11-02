@@ -19,11 +19,10 @@ function generateJourney(seed) {
   return { seed, biomes, weather, hour, minute, train, stations, biomeSeconds };
 }
 
-// The line never ends. Its landscapes come in legs: the first leg is the
-// one above, and when it runs out the train carries on into a new one. Each
-// later leg is rolled from the journey's number and the leg's count, so a
-// long night never repeats, yet the same journey always unrolls the same.
-// The train and the weather stay the same all night.
+// The line never ends. Its landscapes come in legs: the first leg is the one
+// above, and each later leg is rolled from the journey's number and the leg's
+// count. A long night never repeats, yet the same journey always unrolls the
+// same way. The train and the weather stay the same all night.
 function generateLeg(journey, number, previousBiome) {
   if (number === 0) {
     return { number, biomes: journey.biomes, stations: journey.stations, biomeSeconds: journey.biomeSeconds };
@@ -47,7 +46,6 @@ function rollBiomes(random, previousBiome) {
   return biomes;
 }
 
-// Which landscapes have a station, and how long each one lasts.
 function rollStops(random, biomes) {
   const stations = biomes.map(() => random() < 0.5);
   const biomeSeconds = biomes.map(() => 50 + random() * 30);

@@ -18,7 +18,6 @@ function hazeAt(z) {
   return 1 - Math.exp(-z / getAir().distance);
 }
 
-// A colour as it looks from z metres away.
 function hazed(hexColor, z) {
   const red = parseInt(hexColor.slice(1, 3), 16);
   const green = parseInt(hexColor.slice(3, 5), 16);
@@ -31,12 +30,9 @@ function hazed(hexColor, z) {
   return `rgb(${r}, ${g}, ${b})`;
 }
 
-// Fog banks
-
 let fogTexture;
 
-// A long strip of fog, thickest near the ground and ragged on top. Its left
-// and right edges match, so strips can be laid end to end.
+// The strip's left and right edges match, so strips can be laid end to end.
 function createFogTexture() {
   const width = 512;
   const height = 64;
@@ -44,15 +40,14 @@ function createFogTexture() {
   fogTexture = makeTexture(width, height, (x, y) => {
     const wisps = layeredNoise2D((x / width) * cellsAcross, (y / height) * 2, 21, 4, cellsAcross);
     const fromTop = y / height;
-    // Fades in from the top, full in the lower part, then a quick fade at
-    // the very bottom so the strip has no hard edge.
+    // Fades in from the top, then out quickly at the very bottom, so the
+    // strip has no hard edges.
     const shape = Math.min(1, fromTop * 1.6) * Math.min(1, (1 - fromTop) * 6);
     const density = Math.max(0, wisps - 0.3) * 1.6 * shape;
     return [150, 158, 190, Math.min(1, density) * 255];
   });
 }
 
-// A bank of fog lying on the ground z metres away, drifting slowly.
 function createFogBankLayer(z, thickness, strength) {
   const tileMetres = 30 * Math.sqrt(z) + 40;
   const driftSpeed = 1.5;

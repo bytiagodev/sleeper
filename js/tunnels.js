@@ -216,8 +216,6 @@ function cutOpeningSeeThrough(face) {
   return copy;
 }
 
-// The headlamps light up the inside of the arch as the engine runs at it,
-// starting from 40 m out.
 function drawHeadlampInArch(mouthX) {
   const distance = mouthX - getTrainFrontX();
   const nearness = 1 - Math.min(1, Math.max(0, distance) / 40);
@@ -237,9 +235,8 @@ function clipToInsideOfMouth(mouthX, direction) {
   ctx.clip();
 }
 
-// The wing wall: a stone wall beside the line that holds back the hill. It
-// is as high as the tunnel face where it meets it and steps down towards
-// the open ground.
+// As high as the tunnel face where it meets it, stepping down towards the
+// open ground.
 function prerenderWingWall(seed, direction) {
   return prerender(wingWallLength, 8.2, (p) => {
     // Height of the wall's top at a point along it, measured from the end
@@ -285,7 +282,6 @@ function prerenderWingWall(seed, direction) {
   });
 }
 
-// Earth and grass, drawn once and repeated over the hill's slope.
 function createHillPattern() {
   const size = 256;
   const cells = 8;
@@ -321,10 +317,8 @@ function pointOnHill(mouthX, direction, distanceIn, up, seed) {
   return projectPoint(mouthX + distanceIn * direction, z, height);
 }
 
-// The slope of the hill, seen from the side: it starts at the foot just in
-// front of the track and climbs to the crest behind it. Bushes, ferns and
-// rocks are scattered over it, long grass grows along its foot, and grass
-// and trees line its top.
+// Seen from the side, the slope starts at the foot just in front of the track
+// and climbs to the crest behind it.
 function drawHillside(mouthX, direction, seed, hillColor) {
   let farEnd = worldXAt(window.innerWidth + 20, hillCrestZ);
   if (direction < 0) farEnd = worldXAt(-20, hillCrestZ);
@@ -398,7 +392,6 @@ function drawGrassPatches(mouthX, direction, seed) {
   });
 }
 
-// Long grass all along the crest, and trees here and there.
 function drawHillCrest(mouthX, direction, length, seed) {
   const scale = scaleAt(hillCrestZ);
   const plants = new Path2D();
@@ -427,8 +420,7 @@ function drawHillCrest(mouthX, direction, length, seed) {
   fillWithMoonlitEdge(plants, hazed("#06070c", hillCrestZ), 0.3);
 }
 
-// Bushes, ferns, rocks and clumps of grass in rows across the slope, the
-// furthest row first so nearer plants overlap it.
+// The furthest row first, so nearer plants overlap it.
 function drawSlopePlants(mouthX, direction, length, seed) {
   const rows = [0.85, 0.7, 0.55, 0.4, 0.26, 0.12];
   rows.forEach((up, row) => {
@@ -473,8 +465,6 @@ function drawHillFootGrass(mouthX, direction, length, seed) {
   fillWithMoonlitEdge(grass, hazed("#05070a", hillFrontZ), 0.18);
 }
 
-// Brambles and grass growing over the top of the stone face and trailing
-// down its edge, where the earth of the hill meets the stone.
 function drawBramblesOnFace(mouthX, seed) {
   const leaves = new Path2D();
   const stems = new Path2D();
@@ -509,13 +499,11 @@ function drawBramblesOnFace(mouthX, seed) {
   fillWithMoonlitEdge(leaves, hazed("#0b120d", hillFrontZ), 0.3);
 }
 
-// A single leaf: a pointed oval at an angle.
 function traceLeaf(path, x, y, length, angle) {
   path.moveTo(x + Math.cos(angle) * length, y + Math.sin(angle) * length);
   path.ellipse(x, y, length, length * 0.5, angle, 0, Math.PI * 2);
 }
 
-// A low bush: a cluster of overlapping leafy balls.
 function traceBush(path, x, baseY, width, random) {
   for (let i = 0; i < 9; i++) {
     const radius = width * (0.1 + random() * 0.12);
@@ -526,7 +514,6 @@ function traceBush(path, x, baseY, width, random) {
   }
 }
 
-// A fern: long narrow fronds fanning out from one root and arching over.
 function traceFern(path, x, baseY, size, random) {
   for (let i = 0; i < 7; i++) {
     const angle = Math.PI * (1.12 + (i / 6) * 0.76) + (random() - 0.5) * 0.15;
@@ -542,7 +529,6 @@ function traceFern(path, x, baseY, size, random) {
   }
 }
 
-// A rock half sunk into the ground: a lumpy dome.
 function traceRock(path, x, baseY, width, height, random) {
   const corners = 7;
   path.moveTo(x - width / 2, baseY);
@@ -555,7 +541,6 @@ function traceRock(path, x, baseY, width, height, random) {
   path.closePath();
 }
 
-// A broad-leaved tree: a trunk and a crown of overlapping circles.
 function traceRoundTree(path, x, baseY, height, random) {
   const trunkWidth = height * 0.06;
   path.rect(x - trunkWidth / 2, baseY - height * 0.5, trunkWidth, height * 0.5);
@@ -597,7 +582,6 @@ function drawTunnelFace(face, mouthX, nearestZ, furthestZ) {
   }
 }
 
-// Lamps on the tunnel wall, seen while the screen is dark inside.
 function drawTunnelWallLamps(strength) {
   const z = camera.trackZ + 2.8;
   const scale = scaleAt(z);

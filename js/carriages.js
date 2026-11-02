@@ -125,9 +125,9 @@ function drawCarriageRoof(length, pixel) {
   }
 }
 
-// How high the roof is at a point along the carriage. The roof is a curve
-// pulled up towards -4.25 in the middle; with the pull point in the middle,
-// the height follows the simple formula below, highest at the centre.
+// The roof is drawn with quadraticCurveTo, pulled up towards -4.25 in the
+// middle. This is the height of that same curve at a point along the
+// carriage, so the vents sit exactly on it.
 function roofHeightAt(x, length) {
   const edge = bodyTop + 0.05;
   const along = (x + 0.05) / (length + 0.1);
@@ -145,8 +145,7 @@ function drawBogie(centerX, pixel) {
   drawTopEdge(centerX - 1.25, centerX + 1.25, -0.62, pixel);
 }
 
-// The glass, the people behind it and the glow. Kept separate from the body
-// so a tunnel can draw only these.
+// Kept apart from the body so a tunnel can draw only the lit parts.
 function drawCarriageLights(carriage) {
   carriage.windows.forEach((pane, i) => {
     const left = windowX(i);

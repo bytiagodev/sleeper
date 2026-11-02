@@ -147,8 +147,6 @@ function updateTimeline(dt) {
   if (timeline.elapsed >= tunnelSeconds) leaveTunnel();
 }
 
-// "Now stopping at…" shows while the train slows for a station and while
-// it stands there, and fades once it leaves.
 function updateStationLabel() {
   const station = segment.station;
   const atStation = station && (motion.state === "braking" || motion.state === "stopped");

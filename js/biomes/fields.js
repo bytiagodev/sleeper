@@ -19,7 +19,7 @@ function createHillsLayer(seed) {
   };
 }
 
-// A barn and a silo. All sizes are in metres; m() turns them into pixels.
+// Sizes are in metres; m() turns them into pixels.
 function drawFarm(left, baseY, scale, z, hasLitWindow) {
   const m = (metres) => metres * scale;
   const wallColor = hazed("#0f1322", z);
@@ -94,7 +94,6 @@ function createLoneTreeLayer(seed, z) {
         const trunkWidth = Math.max(1, 0.5 * scale);
         ctx.rect(treeX - trunkWidth / 2, baseY - treeHeight / 2, trunkWidth, treeHeight / 2);
 
-        // The crown is five overlapping circles.
         for (let i = 0; i < 5; i++) {
           const circleX = treeX + (random() - 0.5) * treeHeight * 0.55;
           const circleY = baseY - treeHeight * (0.55 + random() * 0.3);
@@ -141,9 +140,6 @@ function createFenceLayer(seed) {
   };
 }
 
-// A hedgerow along a field boundary: a row of rounded bushes about two
-// metres high, a gap here and there for a gate, and now and then a full-size
-// tree growing up out of the hedge.
 function createHedgeLayer(seed) {
   const z = 40;
   const fill = hazed("#090c18", z);

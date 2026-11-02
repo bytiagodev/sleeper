@@ -1,6 +1,5 @@
-// Textures are drawn once, when the page loads or the window changes size,
-// and then reused every frame. Drawing them pixel by pixel is slow, but it
-// only happens once.
+// Textures are made pixel by pixel, which is slow, so each is made once and
+// reused every frame.
 
 // colorAt(x, y) returns [red, green, blue, alpha], each from 0 to 255.
 function makeTexture(width, height, colorAt) {
@@ -32,11 +31,9 @@ function makeCanvas(width, height) {
   return canvas;
 }
 
-// Glows
-
-// A soft round glow, drawn once per colour and then stamped wherever a
-// light is. "lighter" adds the glow's colour to what is underneath, the way
-// light adds up, instead of image over it.
+// Drawn once per colour and stamped wherever a light is. "lighter" adds the
+// glow's colour to what is underneath, the way light adds up, instead of
+// painting over it.
 const glowSprites = {};
 
 function getGlowSprite(color) {
@@ -80,8 +77,6 @@ function drawLightPool(x, groundY, radius, color = warmLight, strength = 0.3) {
   ctx.restore();
 }
 
-// Ground
-
 const groundTextureSize = 512;
 // Across the line one copy covers 32 m; away from the camera it covers
 // 64 m. Seen in perspective, depth is squashed, so stretching the texture
@@ -90,8 +85,8 @@ const groundTexelsPerMetre = 16;
 const groundTexelsPerMetreDeep = 8;
 let groundPattern;
 
-// Light and dark patches with a fine speckle on top. It is transparent where
-// it is neither, so the ground colour of each landscape shows through.
+// Transparent where it is neither light nor dark, so each landscape's ground
+// colour shows through.
 function createGroundPattern() {
   const size = groundTextureSize;
   const cells = 24;
@@ -129,12 +124,10 @@ function drawGroundTexture(farthestZ) {
   ctx.restore();
 }
 
-// Finish
-
 let finish;
 
-// Darkened corners and a faint grain over the whole frame, drawn together
-// into one image. The grain also hides visible steps in smooth gradients.
+// Darkened corners and a faint grain, made once as a single image. The grain
+// also hides visible steps in smooth gradients.
 function createFinish() {
   const width = window.innerWidth;
   const height = window.innerHeight;

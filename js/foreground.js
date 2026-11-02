@@ -1,7 +1,5 @@
-// What stands between the camera and the track. It is the nearest scenery,
-// so it passes fastest, and each landscape has its own: fence posts in the
-// fields, a railing and street lamps in the city, a sea wall and rocks on
-// the coast, ferns in the forest, boulders and scree in the mountains.
+// What stands between the camera and the track. It is the nearest scenery, so
+// it passes fastest, and each landscape has its own.
 
 // The tallest thing that can stand at distance z without hiding the near
 // rail. The camera is 6 m up and looks down at the rail, so the line of
@@ -24,7 +22,7 @@ const foregroundBuilders = {
   fields: (seed) => [createNearFenceLayer(seed)],
   city: (seed) => [createRailingLayer(seed), createStreetLampRow(seed + 1)],
   coast: (seed) => [createSeaWallLayer(seed), createRockRows(seed + 1, [7.7, 6.8], "#1d1e27", 0.4)],
-  forest: (seed) => [createUndergrowthLayer(seed)],
+  forest: (seed) => [createFernLayer(seed)],
   mountains: (seed) => [createScreeLayer(seed), createRockRows(seed + 1, [9.4, 8.2, 7], "#22232b", 0.45)],
 };
 
@@ -32,8 +30,7 @@ function createForegroundLayers(biome, seed) {
   return foregroundBuilders[biome](seed);
 }
 
-// Fields: a post-and-rail fence, with stretches where it has fallen or a
-// gate stands open.
+// Gaps where the fence has fallen or a gate stands open.
 function createNearFenceLayer(seed) {
   const z = 8;
   const spacing = 2.6;
@@ -74,8 +71,6 @@ function createNearFenceLayer(seed) {
   };
 }
 
-// City: an iron railing along the line, with a heavier post every few
-// metres.
 function createRailingLayer(seed) {
   const z = 8.6;
   const height = 1.05;
@@ -116,9 +111,7 @@ function createRailingLayer(seed) {
   };
 }
 
-// City: now and then a street lamp. It is the one thing in front of the
-// track tall enough to pass across the train, and it lights a pool of
-// pavement around its foot.
+// The one thing in front of the track tall enough to pass across the train.
 function createStreetLampRow(seed) {
   const z = 7.4;
   const spacing = 52;
@@ -161,8 +154,6 @@ function createStreetLampRow(seed) {
   };
 }
 
-// Coast: a low wall of dressed stone holding the line above the beach,
-// with a coping along the top that catches the moon.
 function createSeaWallLayer(seed) {
   const z = 9.3;
   const height = 0.75;
@@ -217,8 +208,7 @@ function createSeaWallLayer(seed) {
   };
 }
 
-// Coast and mountains: rows of rocks half sunk into the ground, the
-// furthest row first so nearer rocks overlap it.
+// The furthest row first, so nearer rocks overlap it.
 function createRockRows(seed, rowDistances, color, edgeAlpha) {
   return {
     z: Math.min(...rowDistances),
@@ -243,9 +233,8 @@ function createRockRows(seed, rowDistances, color, edgeAlpha) {
   };
 }
 
-// Mountains: loose stones scattered over the ground, too many and too
-// small to notice one by one, so the slope reads as rough rather than
-// smooth.
+// Too many and too small to notice one by one, so the ground reads as rough
+// rather than smooth.
 function createScreeLayer(seed) {
   const rowDistances = [10.2, 9.5, 8.8, 8.1, 7.4, 6.7];
   return {
@@ -269,8 +258,7 @@ function createScreeLayer(seed) {
   };
 }
 
-// Forest: ferns and low bushes crowding the edge of the line.
-function createUndergrowthLayer(seed) {
+function createFernLayer(seed) {
   const rowDistances = [9.4, 8.3, 7.2];
   return {
     z: Math.min(...rowDistances),
