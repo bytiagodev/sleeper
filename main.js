@@ -83,11 +83,7 @@ function draw() {
 
 // A journey can be shared as a link: ?journey=1234 replays journey 1234.
 function getSeedFromLink() {
-  const text = new URLSearchParams(location.search).get("journey");
-  if (text === null) return null;
-  const seed = Number(text);
-  if (Number.isInteger(seed) && seed >= 0) return seed;
-  return null;
+  return parseSeed(new URLSearchParams(location.search).get("journey"));
 }
 
 // The address bar always holds the journey on screen, ready to be shared.

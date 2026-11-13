@@ -21,7 +21,7 @@ function loadScripts(...files) {
   return context;
 }
 
-const { generateJourney, generateLeg, createJourneyLabel } = loadScripts("js/random.js", "js/journey.js");
+const { generateJourney, generateLeg, createJourneyLabel, parseSeed } = loadScripts("js/random.js", "js/journey.js");
 
 // Objects made inside the scripts belong to another realm, which strict
 // comparison counts as a difference. Copying them through JSON leaves only
@@ -85,4 +85,16 @@ test("no landscape follows itself, even where one leg joins the next", () => {
       assert.notEqual(biomes[i], biomes[i - 1], `journey ${seed}, landscape ${i}`);
     }
   }
+});
+
+test("a link only counts as a journey when it is a plain whole number", () => {
+  assert.equal(parseSeed("4242"), 4242);
+  assert.equal(parseSeed("0"), 0);
+  assert.equal(parseSeed(null), null);
+  assert.equal(parseSeed(""), null);
+  assert.equal(parseSeed("1e3"), null);
+  assert.equal(parseSeed("-5"), null);
+  assert.equal(parseSeed("12.5"), null);
+  assert.equal(parseSeed("abc"), null);
+  assert.equal(parseSeed("1234567890"), null);
 });

@@ -89,3 +89,10 @@ function createJourneyLabel(journey) {
   const ending = pick(random, weatherEndings[journey.weather]);
   return `the ${hour}:${minute} ${route}${ending}`;
 }
+
+// Reads the number from a shared link. Only plain digits count: Number("")
+// is 0 and Number("1e3") is 1000, and nobody typed either as a journey.
+function parseSeed(text) {
+  if (text === null || !/^\d{1,9}$/.test(text)) return null;
+  return Number(text);
+}
