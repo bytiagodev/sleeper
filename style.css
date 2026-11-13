@@ -354,3 +354,15 @@ body.is-idle .buttons {
     transition: none;
   }
 }
+
+.noscript {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: 15px;
+  text-align: center;
+  color: rgba(242, 234, 216, 0.68);
+}
