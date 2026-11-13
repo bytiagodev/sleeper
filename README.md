@@ -20,7 +20,7 @@ Everything is measured in metres. The camera stands 12 metres from the track and
 
 Open `index.html` in a browser. The code is plain JavaScript, one file per part of the scene under `js/`, loaded in order by the page.
 
-The promise that a journey is a single number has tests in `test/`, which need nothing but Node: run `node --test`. They also run on every push.
+Two promises have tests in `test/`, which need nothing but Node: that a journey is a single number, and that distance alone decides how big and how fast anything is drawn. Run `node --test`. They also run on every push.
 
 ---
 
